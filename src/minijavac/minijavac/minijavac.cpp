@@ -29,10 +29,9 @@ void MiniJavaC::OpenFile(const char *filename)
 	int ch;
 
 	while ((ch = fgetc(fp)) != EOF) {
+		lines.back().push_back(ch);
 		if (ch == '\n') {
 			lines.push_back(std::string());
-		} else {
-			lines.back().push_back(ch);
 		}
 	}
 
@@ -61,9 +60,9 @@ void MiniJavaC::DumpContent(unsigned ln1, unsigned col1, unsigned ln2, unsigned 
 {
 	for (unsigned i = ln1; i <= ln2; i++) {
 		printf("%5u | ", ln1);
-		printf("%s\n", lines[i - 1].c_str());
+		printf("%s", lines[i - 1].c_str());
 		printf("%5s | ", "");
-		for (unsigned j = 1; j <= lines[i].length(); j++) {
+		for (unsigned j = 1; j <= lines[i - 1].length(); j++) {
 			printf("%c", (i == ln1 && j == col1) || (i == ln2 && j == col2) ? '^' : ' ');
 		}
 		printf("\n");
@@ -72,12 +71,14 @@ void MiniJavaC::DumpContent(unsigned ln1, unsigned col1, unsigned ln2, unsigned 
 
 void MiniJavaC::ReportError(unsigned ln1, unsigned col1, unsigned ln2, unsigned col2, const char *msg)
 {
+	printf("at [(%d,%d):(%d,%d)]\n", ln1, col1, ln2, col2);
 	DumpContent(ln1, col1, ln2, col2);
-	printf("%s\n", msg);
+	printf(" %s\n", msg);
 }
 
 
 void MiniJavaC::Compile()
 {
+	yycolumn = 1;
 	yyparse();
 }

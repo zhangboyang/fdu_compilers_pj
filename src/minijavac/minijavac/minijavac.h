@@ -1,5 +1,6 @@
 #pragma once
 
+extern int yycolumn;
 extern int yylex();
 extern void yyerror(const char *s);
 

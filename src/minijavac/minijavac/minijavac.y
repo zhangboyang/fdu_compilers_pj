@@ -11,12 +11,20 @@
 
 %token TOK_EOF
 %token TOK_CLASS
+%token TOK_LP TOK_RP
+%token TOK_LB TOK_RB
 %token TOK_MUL
 %token TOK_IDENTIFIER
+%token TOK_UNEXPECTED
 
 %%
 Goal
-  : TOK_CLASS TOK_EOF
+  : MainClass TOK_EOF
+;
+
+MainClass
+  : TOK_CLASS TOK_IDENTIFIER TOK_LB TOK_IDENTIFIER
+;
 
 %%
 
