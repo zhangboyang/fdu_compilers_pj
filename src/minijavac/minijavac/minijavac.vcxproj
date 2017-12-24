@@ -95,6 +95,24 @@
     <Link>
       <SubSystem>Console</SubSystem>
     </Link>
+    <CustomBuildStep />
+    <CustomBuildStep />
+    <CustomBuildStep />
+    <CustomBuildStep />
+    <CustomBuildStep />
+    <CustomBuildStep>
+      <Command>
+      </Command>
+      <Inputs>minijavac.l;minijavac.y;%(Inputs)</Inputs>
+      <Outputs>$(IntDir)minijavac.flex.obj;$(IntDir)minijavac.tab.obj;%(Outputs)</Outputs>
+    </CustomBuildStep>
+    <CustomBuildStep />
+    <CustomBuildStep />
+    <PreBuildEvent />
+    <PostBuildEvent>
+      <Command>del $(IntDir)minijavac.flex.obj
+del $(IntDir)minijavac.tab.obj</Command>
+    </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <ClCompile>
@@ -109,6 +127,21 @@
     <Link>
       <SubSystem>Console</SubSystem>
     </Link>
+    <CustomBuildStep />
+    <CustomBuildStep />
+    <CustomBuildStep />
+    <CustomBuildStep />
+    <CustomBuildStep>
+      <Command>
+      </Command>
+      <Inputs>minijavac.l;minijavac.y;%(Inputs)</Inputs>
+      <Outputs>$(IntDir)minijavac.flex.obj;$(IntDir)minijavac.tab.obj;%(Outputs)</Outputs>
+    </CustomBuildStep>
+    <PreBuildEvent />
+    <PostBuildEvent>
+      <Command>del $(IntDir)minijavac.flex.obj
+del $(IntDir)minijavac.tab.obj</Command>
+    </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <ClCompile>
@@ -127,6 +160,21 @@
       <OptimizeReferences>true</OptimizeReferences>
       <SubSystem>Console</SubSystem>
     </Link>
+    <CustomBuildStep />
+    <CustomBuildStep />
+    <CustomBuildStep />
+    <CustomBuildStep />
+    <CustomBuildStep>
+      <Command>
+      </Command>
+      <Inputs>minijavac.l;minijavac.y;%(Inputs)</Inputs>
+      <Outputs>$(IntDir)minijavac.flex.obj;$(IntDir)minijavac.tab.obj;%(Outputs)</Outputs>
+    </CustomBuildStep>
+    <PreBuildEvent />
+    <PostBuildEvent>
+      <Command>del $(IntDir)minijavac.flex.obj
+del $(IntDir)minijavac.tab.obj</Command>
+    </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <ClCompile>
@@ -145,6 +193,21 @@
       <OptimizeReferences>true</OptimizeReferences>
       <SubSystem>Console</SubSystem>
     </Link>
+    <CustomBuildStep />
+    <CustomBuildStep />
+    <CustomBuildStep />
+    <CustomBuildStep />
+    <CustomBuildStep>
+      <Command>
+      </Command>
+      <Inputs>minijavac.l;minijavac.y;%(Inputs)</Inputs>
+      <Outputs>$(IntDir)minijavac.flex.obj;$(IntDir)minijavac.tab.obj;%(Outputs)</Outputs>
+    </CustomBuildStep>
+    <PreBuildEvent />
+    <PostBuildEvent>
+      <Command>del $(IntDir)minijavac.flex.obj
+del $(IntDir)minijavac.tab.obj</Command>
+    </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="common.cpp">
