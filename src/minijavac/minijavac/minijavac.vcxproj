@@ -110,8 +110,8 @@
     <CustomBuildStep />
     <PreBuildEvent />
     <PostBuildEvent>
-      <Command>del $(IntDir)minijavac.flex.obj
-del $(IntDir)minijavac.tab.obj</Command>
+      <Command>
+      </Command>
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
@@ -139,8 +139,8 @@ del $(IntDir)minijavac.tab.obj</Command>
     </CustomBuildStep>
     <PreBuildEvent />
     <PostBuildEvent>
-      <Command>del $(IntDir)minijavac.flex.obj
-del $(IntDir)minijavac.tab.obj</Command>
+      <Command>
+      </Command>
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
@@ -172,8 +172,8 @@ del $(IntDir)minijavac.tab.obj</Command>
     </CustomBuildStep>
     <PreBuildEvent />
     <PostBuildEvent>
-      <Command>del $(IntDir)minijavac.flex.obj
-del $(IntDir)minijavac.tab.obj</Command>
+      <Command>
+      </Command>
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
@@ -205,8 +205,8 @@ del $(IntDir)minijavac.tab.obj</Command>
     </CustomBuildStep>
     <PreBuildEvent />
     <PostBuildEvent>
-      <Command>del $(IntDir)minijavac.flex.obj
-del $(IntDir)minijavac.tab.obj</Command>
+      <Command>
+      </Command>
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemGroup>

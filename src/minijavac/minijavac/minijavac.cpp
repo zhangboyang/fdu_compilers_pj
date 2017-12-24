@@ -58,12 +58,22 @@ int MiniJavaC::GetChar()
 
 void MiniJavaC::DumpContent(unsigned ln1, unsigned col1, unsigned ln2, unsigned col2)
 {
+	int tabwidth = 4;
 	for (unsigned i = ln1; i <= ln2; i++) {
 		printf("%5u | ", ln1);
-		printf("%s", lines[i - 1].c_str());
+		for (unsigned j = 1; j <= lines[i - 1].length(); j++) {
+			if (lines[i - 1][j - 1] != '\t') {
+				printf("%c", lines[i - 1][j - 1]);
+			} else {
+				printf("%*s", tabwidth, "");
+			}
+		}
 		printf("%5s | ", "");
 		for (unsigned j = 1; j <= lines[i - 1].length(); j++) {
 			printf("%c", (i == ln1 && j == col1) || (i == ln2 && j == col2) ? '^' : ' ');
+			if (lines[i - 1][j - 1] == '\t') {
+				printf("%*s", tabwidth - 1, "");
+			}
 		}
 		printf("\n");
 	}
@@ -80,5 +90,6 @@ void MiniJavaC::ReportError(unsigned ln1, unsigned col1, unsigned ln2, unsigned 
 void MiniJavaC::Compile()
 {
 	yycolumn = 1;
+	//yydebug = 1;
 	yyparse();
 }

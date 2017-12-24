@@ -1,15 +1,16 @@
 %{
 #include "common.h"
+
+
 %}
 
 %locations
-
+%debug
+%glr-parser
 
 %define parse.error verbose
-%define parse.trace true
 
 
-%token TOK_EOF
 %token TOK_CLASS
 %token TOK_PUBLIC
 %token TOK_STATIC
@@ -48,9 +49,19 @@
 %token TOK_IDENTIFIER
 %token TOK_UNEXPECTED
 
+
+%left TOK_EQUAL
+%left TOK_LAND
+%left TOK_LT
+%left TOK_ADD TOK_SUB
+%left TOK_MUL
+%right TOK_NOT
+%left TOK_DOT
+
+
 %%
 Goal
-  : MainClass ClassDeclarationList TOK_EOF
+  : MainClass ClassDeclarationList
 ;
 
 ClassDeclarationList
