@@ -1,14 +1,12 @@
 #include "common.h"
-#include "minijavac.tab.h"
 
-extern FILE *yyin;
 
 int main()
 {
 	printf("Hello World!\n");
 
-	yyin = fopen("../../../tests/Factorial.java", "r");
-	yyparse();
+	MiniJavaC::Instance()->OpenFile("../../../tests/Factorial.java");
+	MiniJavaC::Instance()->Compile();
 
 	system("pause");
 	return 0;

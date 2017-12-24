@@ -13,3 +13,4 @@
 #include <set>
 #include <map>
 
+#include "minijavac.h"
