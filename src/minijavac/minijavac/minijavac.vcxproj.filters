@@ -13,6 +13,9 @@
       <UniqueIdentifier>{67DA6AB6-F800-4c08-8B7A-83BB121AAD01}</UniqueIdentifier>
       <Extensions>rc;ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe;resx;tiff;tif;png;wav;mfcribbon-ms</Extensions>
     </Filter>
+    <Filter Include="flex 和 bison">
+      <UniqueIdentifier>{47d4fb8a-0234-498f-a8c3-006e73dba54c}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="main.cpp">
@@ -21,10 +24,35 @@
     <ClCompile Include="common.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
+    <ClCompile Include="minijavac.tab.cpp">
+      <Filter>flex 和 bison</Filter>
+    </ClCompile>
+    <ClCompile Include="minijavac.flex.cpp">
+      <Filter>flex 和 bison</Filter>
+    </ClCompile>
+    <ClCompile Include="minijavac.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="common.h">
       <Filter>头文件</Filter>
     </ClInclude>
+    <ClInclude Include="minijavac.tab.h">
+      <Filter>flex 和 bison</Filter>
+    </ClInclude>
+    <ClInclude Include="minijavac.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <Flex Include="minijavac.l">
+      <Filter>源文件</Filter>
+    </Flex>
+  </ItemGroup>
+  <ItemGroup>
+    <Bison Include="minijavac.y">
+      <Filter>源文件</Filter>
+    </Bison>
   </ItemGroup>
 </Project>
