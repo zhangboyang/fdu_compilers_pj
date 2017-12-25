@@ -70,11 +70,13 @@ ClassDeclarationList
 ;
 
 MainClass
-  : TOK_CLASS Identifier TOK_LB TOK_PUBLIC TOK_STATIC TOK_VOID TOK_MAIN TOK_LP TOK_STRING TOK_LS TOK_RS Identifier TOK_RP TOK_LB Statement TOK_RB TOK_RB { MiniJavaC::Instance()->DumpContent(@$); }
+  : TOK_CLASS Identifier TOK_LB TOK_PUBLIC TOK_STATIC TOK_VOID TOK_MAIN TOK_LP TOK_STRING TOK_LS TOK_RS Identifier TOK_RP TOK_LB Statement TOK_RB TOK_RB
+    {  }
 ;
 
 ClassDeclaration
   : TOK_CLASS Identifier TOK_LB VarDeclarationList MethodDeclarationList TOK_RB
+    {  }
 ;
 
 VarDeclarationList
@@ -118,6 +120,7 @@ Statement
   | TOK_WHILE TOK_LP Expression TOK_RP Statement
   | TOK_PRINTLN TOK_LP Expression TOK_RP TOK_SEMI
   | Identifier TOK_EQUAL Expression TOK_SEMI
+	{ $3->Dump(); }
   | Identifier TOK_LS Expression TOK_RS TOK_EQUAL Expression TOK_SEMI
 ;
 
@@ -128,36 +131,58 @@ StatementList
 
 Expression
   : Expression TOK_LAND Expression
+    { $$ = new ASTBinaryExpression(@$, { $1, $3 }, TOK_LAND); }
   | Expression TOK_LT Expression
+    { $$ = new ASTBinaryExpression(@$, { $1, $3 }, TOK_LT); }
   | Expression TOK_ADD Expression
+    { $$ = new ASTBinaryExpression(@$, { $1, $3 }, TOK_ADD); }
   | Expression TOK_SUB Expression
+    { $$ = new ASTBinaryExpression(@$, { $1, $3 }, TOK_SUB); }
   | Expression TOK_MUL Expression
+    { $$ = new ASTBinaryExpression(@$, { $1, $3 }, TOK_MUL); }
   | Expression TOK_LS Expression TOK_RS
+    { $$ = new ASTBinaryExpression(@$, { $1, $3 }, TOK_LS); }
   | Expression TOK_DOT TOK_LENGTH
-  | Expression TOK_DOT Identifier TOK_LP ExpressionList1 TOK_RP
+	{ $$ = new ASTArrayLengthExpression(@$, { $1 }); }
+  | Expression TOK_DOT Identifier TOK_LP ArgExpressionList1 TOK_RP
+    { $$ = new ASTFunctionCallExpression(@$, { $1, $3, $5 }); }
   | TOK_NUM
+    { $$ = $1; }
   | TOK_TRUE
+    { $$ = $1; }
   | TOK_FALSE
+    { $$ = $1; }
   | Identifier
+    { $$ = $1; }
   | TOK_THIS
+    { $$ = new ASTThisExpression(@$); }
   | TOK_NEW TOK_INT TOK_LS Expression TOK_RS
+    { $$ = new ASTNewIntArrayExpression(@$, { $4 }); }
   | TOK_NEW Identifier TOK_LP TOK_RP
+	{ $$ = new ASTNewExpression(@$, { $2 }); }
   | TOK_NOT Expression
+	{ $$ = new ASTUnaryExpression(@$, { $2 }, TOK_NOT); }
   | TOK_LP Expression TOK_RP
+    { $$ = new ASTUnaryExpression(@$, { $2 }, TOK_LP); }
 ;
 
-ExpressionList1
+ArgExpressionList1
   :
-  | Expression ExpressionList2
+	{ $$ = new ASTArgExpressionList1(@$); }
+  | Expression ArgExpressionList2
+	{ $$ = new ASTArgExpressionList1(@$, { $1, $2 }); }
 ;
 
-ExpressionList2
+ArgExpressionList2
   :
-  | ExpressionList2 TOK_COM Expression
+	{ $$ = new ASTArgExpressionList2(@$); }
+  | ArgExpressionList2 TOK_COM Expression
+	{ $$ = new ASTArgExpressionList2(@$, { $1, $3 }); }
 ;
 
 Identifier
   : TOK_IDENTIFIER
+    { $$ = $1; }
 ;
 %%
 

@@ -26,7 +26,7 @@ void ASTNodePool::Shrink()
 		flag = false;
 		for (auto it = pool.begin(); it != pool.end(); ) {
 			if (it->use_count() == 1) {
-				printf("ASTNodePool::Shrink() delete %p\n", it->get());
+				//printf("ASTNodePool::Shrink() delete %p\n", it->get());
 				pool.erase(it++);
 				flag = true;
 			} else {
@@ -61,9 +61,14 @@ ASTNode::ASTNode(const yyltype &loc, std::initializer_list<ASTNode *> l) : ASTNo
 
 ASTNode::~ASTNode()
 {
-	MiniJavaC::Instance()->DumpContent(loc);
 }
 
+
+void ASTNode::Dump()
+{
+	PrintVisitor pv;
+	RecursiveAccept(pv);
+}
 
 std::shared_ptr<ASTNode> ASTNode::GetSharedPtr()
 {
@@ -105,7 +110,19 @@ void ASTNode::RecursiveAccept(ASTNodePostOrderVisitor &visitor, int level)
 
 //////////////// ASTNode derived classes ////////////////
 
-ASTIdentifier::ASTIdentifier(const yyltype &loc, const std::string &id) : ASTNode(loc), id(id)
+ASTIdentifier::ASTIdentifier(const yyltype &loc, const std::string &id) : ASTExpression(loc), id(id)
+{
+}
+ASTNumber::ASTNumber(const yyltype &loc, int val) : ASTExpression(loc), val(val)
+{
+}
+ASTBoolean::ASTBoolean(const yyltype &loc, int val) : ASTExpression(loc), val(val)
+{
+}
+ASTBinaryExpression::ASTBinaryExpression(const yyltype &loc, std::initializer_list<ASTNode *> l, int op) : ASTExpression(loc, l), op(op)
+{
+}
+ASTUnaryExpression::ASTUnaryExpression(const yyltype &loc, std::initializer_list<ASTNode *> l, int op) : ASTExpression(loc, l), op(op)
 {
 }
 

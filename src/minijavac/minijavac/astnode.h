@@ -27,6 +27,7 @@ class ASTNodePostOrderVisitor;
 class ASTNode {
 	std::list<std::shared_ptr<ASTNode> >::iterator pool_handle;
 	std::vector<std::shared_ptr<ASTNode> > ch;
+public:
 	yyltype loc;
 private:
 	virtual void Accept(ASTNodeVisitor &visitor, int level);
@@ -35,6 +36,7 @@ public:
 	ASTNode(const yyltype &loc);
 	ASTNode(const yyltype &loc, std::initializer_list<ASTNode *> l);
 	virtual ~ASTNode();
+	void Dump();
 	std::shared_ptr<ASTNode> GetSharedPtr();
 	void AddChild(std::shared_ptr<ASTNode> ch_ptr);
 	void AddChild(ASTNode *ch_ptr);
@@ -46,7 +48,13 @@ public:
 
 //////////////// ASTNode derived classes ////////////////
 
-class ASTIdentifier : public ASTNode {
+
+class ASTExpression : public ASTNode {
+	using ASTNode::ASTNode;
+};
+
+
+class ASTIdentifier : public ASTExpression {
 	std::string id;
 private:
 	//virtual void Accept(ASTNodeVisitor &visitor, int level) override;
@@ -54,12 +62,59 @@ public:
 	ASTIdentifier(const yyltype &loc, const std::string &id);
 };
 
+class ASTNumber : public ASTExpression {
+	int val;
+private:
+	//virtual void Accept(ASTNodeVisitor &visitor, int level) override;
+public:
+	ASTNumber(const yyltype &loc, int val);
+};
+
+class ASTBoolean : public ASTExpression {
+	int val;
+private:
+	//virtual void Accept(ASTNodeVisitor &visitor, int level) override;
+public:
+	ASTBoolean(const yyltype &loc, int val);
+};
 
 
 
 
+class ASTBinaryExpression : public ASTExpression {
+	int op;
+public:
+	ASTBinaryExpression(const yyltype &loc, std::initializer_list<ASTNode *> l, int op);
+};
 
+class ASTUnaryExpression : public ASTExpression {
+	int op;
+public:
+	ASTUnaryExpression(const yyltype &loc, std::initializer_list<ASTNode *> l, int op);
+};
 
+class ASTArrayLengthExpression : public ASTExpression {
+	using ASTExpression::ASTExpression;
+};
+class ASTFunctionCallExpression : public ASTExpression {
+	using ASTExpression::ASTExpression;
+};
+class ASTThisExpression : public ASTExpression {
+	using ASTExpression::ASTExpression;
+};
+class ASTNewIntArrayExpression : public ASTExpression {
+	using ASTExpression::ASTExpression;
+};
+class ASTNewExpression : public ASTExpression {
+	using ASTExpression::ASTExpression;
+};
+
+class ASTArgExpressionList1 : public ASTNode {
+	using ASTNode::ASTNode;
+};
+class ASTArgExpressionList2 : public ASTNode {
+	using ASTNode::ASTNode;
+};
 
 
 

@@ -48,7 +48,7 @@ int MiniJavaC::GetChar()
 
 void MiniJavaC::DumpContent(const yyltype &loc)
 {
-	printf("at [(%d,%d):(%d,%d)]\n", loc.first_line, loc.first_column, loc.last_line, loc.last_column);
+	printf(" at [(%d,%d):(%d,%d)]\n", loc.first_line, loc.first_column, loc.last_line, loc.last_column);
 	int tabwidth = 4;
 	char ch = ' ', ch2;
 	for (int i = loc.first_line; i <= loc.last_line; i++) {

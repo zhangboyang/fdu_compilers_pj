@@ -36,7 +36,7 @@ int yycolumn;
 
 [\n]			{ /* newline */ }
 \/\/[^\n]*		{ /* comments */ }
-[ \t\r]+		{ /*printf("yyleng=%d\n", yyleng); for (int i = 0; i < yyleng; i++) printf("%02x ", (unsigned) (unsigned char) yytext[i]); MiniJavaC::Instance()->DumpContent(yylloc);*/ /* ignore */ }
+[ \t\r]+		{ /* ignore */ }
 
 "class"			{ return TOK_CLASS; }
 "public"		{ return TOK_PUBLIC; }
@@ -45,8 +45,8 @@ int yycolumn;
 "main"			{ return TOK_MAIN; }
 "int"			{ return TOK_INT; }
 "boolean"		{ return TOK_BOOLEAN; }
-"false"			{ return TOK_FALSE; }
-"true"			{ return TOK_TRUE; }
+"false"			{ yylval = new ASTBoolean(yylloc, 0); return TOK_FALSE; }
+"true"			{ yylval = new ASTBoolean(yylloc, 1); return TOK_TRUE; }
 "if"			{ return TOK_IF; }
 "else"			{ return TOK_ELSE; }
 "length"		{ return TOK_LENGTH; }
@@ -77,7 +77,7 @@ int yycolumn;
 "!"				{ return TOK_NOT; }
 
 [a-zA-Z_][a-zA-Z0-9_]*	{ yylval = new ASTIdentifier(yylloc, yytext); return TOK_IDENTIFIER; }
-[0-9]+			{ return TOK_NUM; }
+[0-9]+			{ yylval = new ASTNumber(yylloc, atoi(yytext)); return TOK_NUM; }
 
 .				{ return TOK_UNEXPECTED; }
 
