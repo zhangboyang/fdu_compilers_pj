@@ -17,17 +17,6 @@ int main()
 	//MiniJavaC::Instance()->OpenFile("../../../tests/TreeVisitor.java");
 	MiniJavaC::Instance()->Compile();
 
-
-	std::shared_ptr<ASTNode> p = (new ASTIdentifier())->GetSharedPtr();
-
-	p->AddChild(new ASTNode());
-
-	new ASTNode { new ASTNode(), new ASTNode(), new ASTNode() };
-
-	printf("%s\n", typeid(*p).name());
-
-	ASTNodePool::Instance()->Shrink();
-
 	system("pause");
 	return 0;
 }

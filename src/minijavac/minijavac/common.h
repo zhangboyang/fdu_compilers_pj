@@ -22,5 +22,6 @@
 #include <list>
 #include <memory>
 
-#include "minijavac.h"
+
 #include "astnode.h"
+#include "minijavac.h"

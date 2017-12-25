@@ -21,6 +21,8 @@ class MiniJavaC {
 	std::vector<std::string> lines;
 	unsigned ln, col;
 
+	std::shared_ptr<ASTNode> goal;
+
 private:
 	MiniJavaC();
 public:

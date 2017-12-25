@@ -21,10 +21,14 @@ public:
 //////////////// ASTNode ////////////////
 
 class ASTNodeVisitor;
+class ASTNodePreOrderVisitor;
+class ASTNodePostOrderVisitor;
 
 class ASTNode {
 	std::list<std::shared_ptr<ASTNode> >::iterator pool_handle;
 	std::vector<std::shared_ptr<ASTNode> > ch;
+private:
+	virtual void Accept(ASTNodeVisitor &visitor, int level);
 public:
 	ASTNode();
 	ASTNode(std::initializer_list<ASTNode *> l);
@@ -32,7 +36,8 @@ public:
 	std::shared_ptr<ASTNode> GetSharedPtr();
 	void AddChild(std::shared_ptr<ASTNode> ch_ptr);
 	void AddChild(ASTNode *ch_ptr);
-	virtual void Visit(std::shared_ptr<ASTNodeVisitor> visitor);
+	void RecursiveAccept(ASTNodePreOrderVisitor &visitor, int level = 0);
+	void RecursiveAccept(ASTNodePostOrderVisitor &visitor, int level = 0);
 };
 
 
@@ -40,7 +45,11 @@ public:
 //////////////// ASTNode derived classes ////////////////
 
 class ASTIdentifier : public ASTNode {
-	
+	std::string id;
+private:
+	//virtual void Accept(ASTNodeVisitor &visitor, int level) override;
+public:
+	ASTIdentifier(const std::string &id);
 };
 
 
@@ -57,5 +66,14 @@ class ASTIdentifier : public ASTNode {
 
 class ASTNodeVisitor {
 public:
-	virtual void Visit(std::shared_ptr<ASTNode> node);
+	virtual void Visit(ASTNode *node, int level);
+};
+
+class ASTNodePreOrderVisitor : public ASTNodeVisitor {
+};
+class ASTNodePostOrderVisitor : public ASTNodeVisitor {
+};
+
+class PrintVisitor : public ASTNodePreOrderVisitor {
+	virtual void Visit(ASTNode *node, int level) override;
 };

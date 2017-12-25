@@ -82,4 +82,6 @@ void MiniJavaC::Compile()
 	yycolumn = 1;
 	//yydebug = 1;
 	yyparse();
+
+	ASTNodePool::Instance()->Shrink();
 }
