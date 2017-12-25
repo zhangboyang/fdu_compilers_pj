@@ -48,6 +48,7 @@ public:
 
 //////////////// ASTNode derived classes ////////////////
 
+// ASTExpresstion
 
 class ASTExpression : public ASTNode {
 	using ASTNode::ASTNode;
@@ -115,6 +116,40 @@ class ASTArgExpressionList1 : public ASTNode {
 class ASTArgExpressionList2 : public ASTNode {
 	using ASTNode::ASTNode;
 };
+
+
+// ASTStatment
+
+class ASTStatement : public ASTNode {
+	using ASTNode::ASTNode;
+};
+
+class ASTStatementList : public ASTStatement {
+	using ASTStatement::ASTStatement;
+};
+
+
+class ASTArrayAssignStatement : public ASTStatement {
+	using ASTStatement::ASTStatement;
+};
+class ASTAssignStatement : public ASTStatement {
+	using ASTStatement::ASTStatement;
+};
+class ASTPrintlnStatement : public ASTStatement {
+	using ASTStatement::ASTStatement;
+};
+class ASTWhileStatement : public ASTStatement {
+	using ASTStatement::ASTStatement;
+};
+class ASTIfElseStatement : public ASTStatement {
+	using ASTStatement::ASTStatement;
+};
+class ASTBlockStatement : public ASTStatement {
+	using ASTStatement::ASTStatement;
+};
+
+
+
 
 
 

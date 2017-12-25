@@ -71,7 +71,7 @@ ClassDeclarationList
 
 MainClass
   : TOK_CLASS Identifier TOK_LB TOK_PUBLIC TOK_STATIC TOK_VOID TOK_MAIN TOK_LP TOK_STRING TOK_LS TOK_RS Identifier TOK_RP TOK_LB Statement TOK_RB TOK_RB
-    {  }
+    { $15->Dump(); }
 ;
 
 ClassDeclaration
@@ -116,18 +116,25 @@ Type
 
 Statement
   : TOK_LB StatementList TOK_RB
+    { $$ = new ASTBlockStatement(@$, { $2 }); }
   | TOK_IF TOK_LP Expression TOK_RP Statement TOK_ELSE Statement
+    { $$ = new ASTIfElseStatement(@$, { $3, $5, $7 }); }
   | TOK_WHILE TOK_LP Expression TOK_RP Statement
+	{ $$ = new ASTWhileStatement(@$, { $3, $5 }); }
   | TOK_PRINTLN TOK_LP Expression TOK_RP TOK_SEMI
+    { $$ = new ASTPrintlnStatement(@$, { $3 }); }
   | Identifier TOK_EQUAL Expression TOK_SEMI
-	{ $3->Dump(); }
+    { $$ = new ASTAssignStatement(@$, { $1, $3 }); }
   | Identifier TOK_LS Expression TOK_RS TOK_EQUAL Expression TOK_SEMI
+    { $$ = new ASTArrayAssignStatement(@$, { $1, $3, $6 }); }
 ;
 
 StatementList
   :
+	{ $$ = new ASTStatementList(@$); }
   | StatementList Statement
-;	
+    { $$ = new ASTStatementList(@$, { $1, $2} ); }
+;
 
 Expression
   : Expression TOK_LAND Expression
