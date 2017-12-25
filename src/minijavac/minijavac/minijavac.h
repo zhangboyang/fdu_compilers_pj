@@ -37,7 +37,7 @@ public:
 	void DumpContent(const yyltype &loc);
 	void Compile();
 	void DumpASTToScreen();
-	void DumpASTToJSON();
+	void DumpASTToJSON(const char *jsonfile);
 };
 
 

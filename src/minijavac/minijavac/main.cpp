@@ -23,7 +23,8 @@ int main()
 
 	MiniJavaC::Instance()->DumpASTToScreen();
 
-	
+	//MiniJavaC::Instance()->DumpASTToJSON("out.json");
+
 	//system("pause");
 	return 0;
 }

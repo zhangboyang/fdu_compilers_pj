@@ -1,4 +1,5 @@
 #include "common.h"
+#include "minijavac.tab.h"
 
 //////////////// ASTNodePool ////////////////
 
@@ -63,13 +64,6 @@ ASTNode::~ASTNode()
 {
 }
 
-
-void ASTNode::Dump()
-{
-	PrintVisitor pv;
-	RecursiveAccept(pv);
-}
-
 std::shared_ptr<ASTNode> ASTNode::GetSharedPtr()
 {
 	return ASTNodePool::Instance()->GetSharedPtr(pool_handle);
@@ -91,22 +85,6 @@ void ASTNode::Accept(ASTNodeVisitor &visitor, int level)
 	visitor.Visit(this, level);
 }
 
-void ASTNode::RecursiveAccept(ASTNodePreOrderVisitor &visitor, int level)
-{
-	Accept(visitor, level);
-	for (auto &p: ch) {
-		p->RecursiveAccept(visitor, level + 1);
-	}
-}
-
-void ASTNode::RecursiveAccept(ASTNodePostOrderVisitor &visitor, int level)
-{
-	for (auto &p: ch) {
-		p->RecursiveAccept(visitor, level + 1);
-	}
-	Accept(visitor, level);
-}
-
 
 //////////////// ASTNode derived classes ////////////////
 
@@ -122,8 +100,28 @@ ASTBoolean::ASTBoolean(const yyltype &loc, int val) : ASTExpression(loc), val(va
 ASTBinaryExpression::ASTBinaryExpression(const yyltype &loc, std::initializer_list<ASTNode *> l, int op) : ASTExpression(loc, l), op(op)
 {
 }
+const char *ASTBinaryExpression::GetOperatorName()
+{
+	switch (op) {
+		case TOK_LAND:  return "LOGICAL_AND";
+		case TOK_LT:    return "LESS_THAN";
+		case TOK_ADD:   return "ADD";
+		case TOK_SUB:   return "SUB";
+		case TOK_MUL:   return "MUL";
+		case TOK_LS:    return "ARRAY_SUBSCRIPT";
+		default:        return "UNKNOWN";
+	}
+}
 ASTUnaryExpression::ASTUnaryExpression(const yyltype &loc, std::initializer_list<ASTNode *> l, int op) : ASTExpression(loc, l), op(op)
 {
+}
+const char *ASTUnaryExpression::GetOperatorName()
+{
+	switch (op) {
+		case TOK_NOT:   return "NOT";
+		case TOK_LP:    return "PARENTHESES";
+		default:        return "UNKNOWN";
+	}
 }
 
 
@@ -131,9 +129,79 @@ ASTUnaryExpression::ASTUnaryExpression(const yyltype &loc, std::initializer_list
 ASTType::ASTType(const yyltype &loc, std::initializer_list<ASTNode *> l, VarType type) : ASTNode(loc, l), type(type)
 {
 }
+const char *ASTType::GetTypeName()
+{
+	switch (type) {
+		case VT_INT:       return "INT";
+		case VT_INTARRAY:  return "INT_ARRAY";
+		case VT_BOOLEAN:   return "BOOLEAN";
+		case VT_CLASS:     return "CLASS";
+		default:           return "UNKNOWN";
+	}
+}
+
 
 //////////////// default ASTNodeVisitor ////////////////
 
+
+void ASTNodeVisitor::VisitChildren(ASTNode *node, int level)
+{
+	for (auto &ch: node->ch) {
+		ch->Accept(*this, level + 1);
+	}
+}
+
+// Visit
 void ASTNodeVisitor::Visit(ASTNode *node, int level)
 {
+}
+void ASTNodeVisitor::Visit(ASTIdentifier *node, int level)
+{
+	Visit(static_cast<ASTNode *>(node), level);
+}
+void ASTNodeVisitor::Visit(ASTBoolean *node, int level)
+{
+	Visit(static_cast<ASTNode *>(node), level);
+}
+void ASTNodeVisitor::Visit(ASTNumber *node, int level)
+{
+	Visit(static_cast<ASTNode *>(node), level);
+}
+void ASTNodeVisitor::Visit(ASTBinaryExpression *node, int level)
+{
+	Visit(static_cast<ASTNode *>(node), level);
+}
+void ASTNodeVisitor::Visit(ASTUnaryExpression *node, int level)
+{
+	Visit(static_cast<ASTNode *>(node), level);
+}
+void ASTNodeVisitor::Visit(ASTType *node, int level)
+{
+	Visit(static_cast<ASTNode *>(node), level);
+}
+
+// Accept
+void ASTIdentifier::Accept(ASTNodeVisitor &visitor, int level)
+{
+	visitor.Visit(this, level);
+}
+void ASTNumber::Accept(ASTNodeVisitor &visitor, int level)
+{
+	visitor.Visit(this, level);
+}
+void ASTBoolean::Accept(ASTNodeVisitor &visitor, int level)
+{
+	visitor.Visit(this, level);
+}
+void ASTBinaryExpression::Accept(ASTNodeVisitor &visitor, int level)
+{
+	visitor.Visit(this, level);
+}
+void ASTUnaryExpression::Accept(ASTNodeVisitor &visitor, int level)
+{
+	visitor.Visit(this, level);
+}
+void ASTType::Accept(ASTNodeVisitor &visitor, int level)
+{
+	visitor.Visit(this, level);
 }

@@ -103,10 +103,11 @@ void MiniJavaC::Compile()
 
 void MiniJavaC::DumpASTToScreen()
 {
-	goal->Dump();
+	PrintVisitor v;
+	goal->Accept(v);
 }
 
-void MiniJavaC::DumpASTToJSON()
+void MiniJavaC::DumpASTToJSON(const char *jsonfile)
 {
 	
 }

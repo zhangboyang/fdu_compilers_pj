@@ -21,6 +21,7 @@
 #include <map>
 #include <list>
 #include <memory>
+#include <functional>
 
 #include "minijavac.h"
 #include "astnode.h"

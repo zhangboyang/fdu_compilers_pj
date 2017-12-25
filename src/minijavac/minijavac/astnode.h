@@ -21,27 +21,23 @@ public:
 //////////////// ASTNode ////////////////
 
 class ASTNodeVisitor;
-class ASTNodePreOrderVisitor;
-class ASTNodePostOrderVisitor;
 
 class ASTNode {
 	std::list<std::shared_ptr<ASTNode> >::iterator pool_handle;
-	std::vector<std::shared_ptr<ASTNode> > ch;
 public:
+	std::vector<std::shared_ptr<ASTNode> > ch;
 	yyltype loc;
 private:
-	virtual void Accept(ASTNodeVisitor &visitor, int level);
+	
 public:
 	ASTNode();
 	ASTNode(const yyltype &loc);
 	ASTNode(const yyltype &loc, std::initializer_list<ASTNode *> l);
 	virtual ~ASTNode();
-	void Dump();
+	virtual void Accept(ASTNodeVisitor &visitor, int level = 0);
 	std::shared_ptr<ASTNode> GetSharedPtr();
 	void AddChild(std::shared_ptr<ASTNode> ch_ptr);
 	void AddChild(ASTNode *ch_ptr);
-	void RecursiveAccept(ASTNodePreOrderVisitor &visitor, int level = 0);
-	void RecursiveAccept(ASTNodePostOrderVisitor &visitor, int level = 0);
 };
 
 
@@ -56,25 +52,28 @@ class ASTExpression : public ASTNode {
 
 
 class ASTIdentifier : public ASTExpression {
+public:
 	std::string id;
 private:
-	//virtual void Accept(ASTNodeVisitor &visitor, int level) override;
+	virtual void Accept(ASTNodeVisitor &visitor, int level) override;
 public:
 	ASTIdentifier(const yyltype &loc, const std::string &id);
 };
 
 class ASTNumber : public ASTExpression {
+public:
 	int val;
 private:
-	//virtual void Accept(ASTNodeVisitor &visitor, int level) override;
+	virtual void Accept(ASTNodeVisitor &visitor, int level) override;
 public:
 	ASTNumber(const yyltype &loc, int val);
 };
 
 class ASTBoolean : public ASTExpression {
+public:
 	int val;
 private:
-	//virtual void Accept(ASTNodeVisitor &visitor, int level) override;
+	virtual void Accept(ASTNodeVisitor &visitor, int level) override;
 public:
 	ASTBoolean(const yyltype &loc, int val);
 };
@@ -86,12 +85,16 @@ class ASTBinaryExpression : public ASTExpression {
 public:
 	int op;
 	ASTBinaryExpression(const yyltype &loc, std::initializer_list<ASTNode *> l, int op);
+	virtual void Accept(ASTNodeVisitor &visitor, int level) override;
+	const char *GetOperatorName();
 };
 
 class ASTUnaryExpression : public ASTExpression {
 public:
 	int op;
 	ASTUnaryExpression(const yyltype &loc, std::initializer_list<ASTNode *> l, int op);
+	virtual void Accept(ASTNodeVisitor &visitor, int level) override;
+	const char *GetOperatorName();
 };
 
 class ASTArrayLengthExpression : public ASTExpression {
@@ -161,6 +164,8 @@ public:
 
 	VarType type;
 	ASTType(const yyltype &loc, std::initializer_list<ASTNode *> l, VarType type);
+	virtual void Accept(ASTNodeVisitor &visitor, int level) override;
+	const char *GetTypeName();
 };
 
 
@@ -217,15 +222,26 @@ class ASTGoal : public ASTNode {
 //////////////// ASTNode Visitor ////////////////
 
 class ASTNodeVisitor {
+protected:
+	void VisitChildren(ASTNode *node, int level);
 public:
 	virtual void Visit(ASTNode *node, int level);
+	virtual void Visit(ASTIdentifier *node, int level);
+	virtual void Visit(ASTBoolean *node, int level);
+	virtual void Visit(ASTNumber *node, int level);
+	virtual void Visit(ASTBinaryExpression *node, int level);
+	virtual void Visit(ASTUnaryExpression *node, int level);
+	virtual void Visit(ASTType *node, int level);
 };
 
-class ASTNodePreOrderVisitor : public ASTNodeVisitor {
-};
-class ASTNodePostOrderVisitor : public ASTNodeVisitor {
-};
 
-class PrintVisitor : public ASTNodePreOrderVisitor {
+class PrintVisitor : public ASTNodeVisitor {
 	virtual void Visit(ASTNode *node, int level) override;
+	virtual void Visit(ASTIdentifier *node, int level) override;
+	virtual void Visit(ASTBoolean *node, int level) override;
+	virtual void Visit(ASTNumber *node, int level) override;
+	virtual void Visit(ASTBinaryExpression *node, int level) override;
+	virtual void Visit(ASTUnaryExpression *node, int level) override;
+	virtual void Visit(ASTType *node, int level) override;
+	void Visit(ASTNode *node, int level, std::function<void()> func);
 };
