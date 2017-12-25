@@ -245,3 +245,24 @@ class PrintVisitor : public ASTNodeVisitor {
 	virtual void Visit(ASTType *node, int level) override;
 	void Visit(ASTNode *node, int level, std::function<void()> func);
 };
+
+class JSONVisitor : public ASTNodeVisitor {
+	FILE *fp;
+	void OutEscapedString(const char *s);
+	void OutQuotedString(const char *s);
+
+	void OutKeyValue(const char *key, const char *value);
+	void OutKeyValue(const char *key, int value);
+
+	virtual void Visit(ASTNode *node, int level) override;
+	virtual void Visit(ASTIdentifier *node, int level) override;
+	virtual void Visit(ASTBoolean *node, int level) override;
+	virtual void Visit(ASTNumber *node, int level) override;
+	virtual void Visit(ASTBinaryExpression *node, int level) override;
+	virtual void Visit(ASTUnaryExpression *node, int level) override;
+	virtual void Visit(ASTType *node, int level) override;
+	void Visit(ASTNode *node, int level, std::function<void()> func);
+
+public:
+	void DumpASTToJSON(const char *jsonfile, ASTNode *root, const std::vector<std::string> &lines);
+};

@@ -26,25 +26,25 @@ void PrintVisitor::Visit(ASTIdentifier *node, int level)
 void PrintVisitor::Visit(ASTBoolean *node, int level)
 {
 	Visit(node, level, [&] {
-		printf("val=%d", node->val);
+		printf("value=%d", node->val);
 	});
 }
 void PrintVisitor::Visit(ASTNumber *node, int level)
 {
 	Visit(node, level, [&] {
-		printf("val=%d", node->val);
+		printf("value=%d", node->val);
 	});
 }
 void PrintVisitor::Visit(ASTBinaryExpression *node, int level)
 {
 	Visit(node, level, [&] {
-		printf("op=%s", node->GetOperatorName());
+		printf("operator=%s", node->GetOperatorName());
 	});
 }
 void PrintVisitor::Visit(ASTUnaryExpression *node, int level)
 {
 	Visit(node, level, [&] {
-		printf("op=%s", node->GetOperatorName());
+		printf("operator=%s", node->GetOperatorName());
 	});
 }
 void PrintVisitor::Visit(ASTType *node, int level)

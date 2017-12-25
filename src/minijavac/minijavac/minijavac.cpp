@@ -109,5 +109,6 @@ void MiniJavaC::DumpASTToScreen()
 
 void MiniJavaC::DumpASTToJSON(const char *jsonfile)
 {
-	
+	JSONVisitor v;
+	v.DumpASTToJSON(jsonfile, goal.get(), lines);
 }
