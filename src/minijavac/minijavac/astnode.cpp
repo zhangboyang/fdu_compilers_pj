@@ -21,14 +21,19 @@ std::shared_ptr<ASTNode> ASTNodePool::GetSharedPtr(std::list<std::shared_ptr<AST
 }
 void ASTNodePool::Shrink()
 {
-	for (auto it = pool.begin(); it != pool.end(); ) {
-		if (it->use_count() == 1) {
-			printf("ASTNodePool free %p\n", it->get());
-			pool.erase(it++);
-		} else {
-			it++;
+	bool flag;
+	do {
+		flag = false;
+		for (auto it = pool.begin(); it != pool.end(); ) {
+			if (it->use_count() == 1) {
+				printf("ASTNodePool free %p\n", it->get());
+				pool.erase(it++);
+				flag = true;
+			} else {
+				it++;
+			}
 		}
-	}
+	} while (flag);
 }
 
 
@@ -41,6 +46,12 @@ void ASTNodePool::Shrink()
 ASTNode::ASTNode()
 {
 	pool_handle = ASTNodePool::Instance()->RegisterNode(this);
+}
+ASTNode::ASTNode(std::initializer_list<ASTNode *> l) : ASTNode()
+{
+	for (auto ptr: l) {
+		AddChild(ptr);
+	}
 }
 
 ASTNode::~ASTNode()
@@ -66,3 +77,7 @@ void ASTNode::Visit(std::shared_ptr<ASTNodeVisitor> visitor)
 {
 	visitor->Visit(GetSharedPtr());
 }
+
+
+//////////////// ASTNode derived classes ////////////////
+

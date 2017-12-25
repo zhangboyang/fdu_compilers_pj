@@ -1,5 +1,6 @@
 #pragma once
 
+//////////////// ASTNodePool ////////////////
 
 class ASTNode;
 
@@ -17,6 +18,7 @@ public:
 };
 
 
+//////////////// ASTNode ////////////////
 
 class ASTNodeVisitor;
 
@@ -25,16 +27,33 @@ class ASTNode {
 	std::vector<std::shared_ptr<ASTNode> > ch;
 public:
 	ASTNode();
+	ASTNode(std::initializer_list<ASTNode *> l);
 	virtual ~ASTNode();
 	std::shared_ptr<ASTNode> GetSharedPtr();
 	void AddChild(std::shared_ptr<ASTNode> ch_ptr);
 	void AddChild(ASTNode *ch_ptr);
-	void Visit(std::shared_ptr<ASTNodeVisitor> visitor);
+	virtual void Visit(std::shared_ptr<ASTNodeVisitor> visitor);
+};
+
+
+
+//////////////// ASTNode derived classes ////////////////
+
+class ASTIdentifier : public ASTNode {
+	
 };
 
 
 
 
+
+
+
+
+
+
+
+//////////////// ASTNode Visitor ////////////////
 
 class ASTNodeVisitor {
 public:
