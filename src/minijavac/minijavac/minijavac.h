@@ -23,7 +23,7 @@ extern void yyerror(const char *s);
 class MiniJavaC {
 	std::vector<std::string> lines;
 	unsigned ln, col;
-
+public:
 	std::shared_ptr<ASTNode> goal;
 
 private:
@@ -36,6 +36,8 @@ public:
 	void OpenFile(const char *filename);
 	void DumpContent(const yyltype &loc);
 	void Compile();
+	void DumpASTToScreen();
+	void DumpASTToJSON();
 };
 
 

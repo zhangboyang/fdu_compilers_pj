@@ -62,49 +62,62 @@
 %%
 Goal
   : MainClass ClassDeclarationList
+    { MiniJavaC::Instance()->goal = (new ASTGoal(@$, { $1, $2 }))->GetSharedPtr(); }
 ;
 
 ClassDeclarationList
   :
+    { $$ = new ASTClassDeclarationList(@$); }
   | ClassDeclarationList ClassDeclaration
+    { $$ = new ASTClassDeclarationList(@$, { $1, $2 }); }
 ;
 
 MainClass
   : TOK_CLASS Identifier TOK_LB TOK_PUBLIC TOK_STATIC TOK_VOID TOK_MAIN TOK_LP TOK_STRING TOK_LS TOK_RS Identifier TOK_RP TOK_LB Statement TOK_RB TOK_RB
-    {  }
+    { $$ = new ASTMainClass(@$, { $2, $12, $15 }); }
 ;
 
 ClassDeclaration
   : TOK_CLASS Identifier TOK_LB VarDeclarationList MethodDeclarationList TOK_RB
-    {  }
+    { $$ = new ASTClassDeclaration(@$, { $2, $4, $5 }); }
 ;
 
 VarDeclarationList
   :
+	{ $$ = new ASTVarDeclarationList(@$); }
   | VarDeclarationList VarDeclaration
+    { $$ = new ASTVarDeclarationList(@$, { $1, $2 }); }
 ;
 
 MethodDeclarationList
   :
+	{ $$ = new ASTMethodDeclarationList(@$); }
   | MethodDeclarationList MethodDeclaration
+    { $$ = new ASTMethodDeclarationList(@$, { $1, $2 }); }
 ;
 
 VarDeclaration
   : Type Identifier TOK_SEMI
+    { $$ = new ASTVarDeclaration(@$, { $1, $2 }); }
 ;
 
 MethodDeclaration
   : TOK_PUBLIC Type Identifier TOK_LP ArgDeclarationList1 TOK_RP TOK_LB VarDeclarationList StatementList TOK_RETURN Expression TOK_SEMI TOK_RB
+    { $$ = new ASTMethodDeclaration(@$, { $2, $3, $5, $8, $9, $11 }); }
 ;
 
 ArgDeclarationList1
   :
+	{ $$ = new ArgDeclarationList1(@$); }
   | Type Identifier ArgDeclarationList2
+    { $$ = new ArgDeclarationList1(@$, { $1, $2, $3 }); }
 ;
 
 ArgDeclarationList2
   :
+	{ $$ = new ArgDeclarationList2(@$); }
   | ArgDeclarationList2 TOK_COM Type Identifier
+	{ $$ = new ArgDeclarationList2(@$, { $1, $3, $4 }); }
 ;
 
 Type

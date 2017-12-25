@@ -164,10 +164,54 @@ public:
 };
 
 
+// ASTArgDeclarationList
+
+class ArgDeclarationList1 : public ASTNode {
+	using ASTNode::ASTNode;
+};
+class ArgDeclarationList2 : public ASTNode {
+	using ASTNode::ASTNode;
+};
 
 
 
+// ASTMethodDeclaration
 
+class ASTMethodDeclaration : public ASTNode {
+	using ASTNode::ASTNode;
+};
+class ASTMethodDeclarationList : public ASTNode {
+	using ASTNode::ASTNode;
+};
+
+
+// ASTVarDeclaration
+class ASTVarDeclaration : public ASTNode {
+	using ASTNode::ASTNode;
+};
+class ASTVarDeclarationList : public ASTNode {
+	using ASTNode::ASTNode;
+};
+
+
+// ASTClassDeclaration
+class ASTClassDeclaration : public ASTNode {
+	using ASTNode::ASTNode;
+};
+class ASTClassDeclarationList : public ASTNode {
+	using ASTNode::ASTNode;
+};
+
+
+// ASTMainClass
+class ASTMainClass : public ASTNode {
+	using ASTNode::ASTNode;
+};
+
+// ASTGoal
+class ASTGoal : public ASTNode {
+	using ASTNode::ASTNode;
+};
 
 
 //////////////// ASTNode Visitor ////////////////

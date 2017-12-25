@@ -3,6 +3,8 @@
 
 int main()
 {
+	freopen("out.txt", "w", stdout);
+
 	#ifdef _DEBUG
 	_CrtSetDbgFlag ( _CRTDBG_ALLOC_MEM_DF | _CRTDBG_LEAK_CHECK_DF );  
 	#endif
@@ -15,8 +17,13 @@ int main()
 	//MiniJavaC::Instance()->OpenFile("../../../tests/LinkedList.java");
 	//MiniJavaC::Instance()->OpenFile("../../../tests/QuickSort.java");
 	//MiniJavaC::Instance()->OpenFile("../../../tests/TreeVisitor.java");
-	MiniJavaC::Instance()->Compile();
 
-	system("pause");
+	MiniJavaC::Instance()->Compile();
+	assert(MiniJavaC::Instance()->goal);
+
+	MiniJavaC::Instance()->DumpASTToScreen();
+
+	
+	//system("pause");
 	return 0;
 }
