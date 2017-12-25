@@ -9,16 +9,6 @@ MiniJavaC *MiniJavaC::Instance()
 	static MiniJavaC inst;
 	return &inst;
 }
-void MiniJavaC::PushFilePointer()
-{
-	fpstack.push_back(std::make_pair(ln, col));
-}
-void MiniJavaC::PopFilePointer()
-{
-	ln = fpstack.back().first;
-	col = fpstack.back().second;
-	fpstack.pop_back();
-}
 
 void MiniJavaC::OpenFile(const char *filename)
 {

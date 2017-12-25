@@ -3,6 +3,13 @@
 
 #define _CRT_SECURE_NO_WARNINGS
 
+#ifdef _DEBUG
+#define _CRTDBG_MAP_ALLOC  
+#include <stdlib.h>  
+#include <crtdbg.h>  
+#endif
+
+
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
@@ -12,5 +19,8 @@
 #include <vector>
 #include <set>
 #include <map>
+#include <list>
+#include <memory>
 
 #include "minijavac.h"
+#include "astnode.h"

@@ -33,6 +33,9 @@
     <ClCompile Include="minijavac.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
+    <ClCompile Include="astnode.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="common.h">
@@ -42,6 +45,9 @@
       <Filter>flex 和 bison</Filter>
     </ClInclude>
     <ClInclude Include="minijavac.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="astnode.h">
       <Filter>头文件</Filter>
     </ClInclude>
   </ItemGroup>
