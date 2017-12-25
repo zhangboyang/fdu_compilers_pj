@@ -10,16 +10,20 @@ int yycolumn;
 		yylloc.last_line = yylineno; \
 		yylloc.first_column = yycolumn; \
 		yylloc.last_column = yycolumn + yyleng - 1; \
-		if (*yytext != '\n') yycolumn += yyleng; }
+		for (int i = 0; i < yyleng; i++) { \
+			if (yytext[i] == '\n') { \
+				yylineno++; \
+				yycolumn = 1; \
+			} else { \
+				yycolumn++; \
+			} \
+		} \
+}
 
 
 #define YY_INPUT(buf,result,max_size) \
 	{ \
 		int c = MiniJavaC::Instance()->GetChar(); \
-		if (c == '\n') { \
-			yylineno++; \
-			yycolumn = 1; \
-		} \
 		result = (c == EOF) ? YY_NULL : (buf[0] = c, 1); \
 	}
 
@@ -32,7 +36,7 @@ int yycolumn;
 
 [\n]			{ /* newline */ }
 \/\/[^\n]*		{ /* comments */ }
-[ \t\r]+		{ /* ignore */ }
+[ \t\r]+		{ /*printf("yyleng=%d\n", yyleng); for (int i = 0; i < yyleng; i++) printf("%02x ", (unsigned) (unsigned char) yytext[i]); MiniJavaC::Instance()->DumpContent(yylloc);*/ /* ignore */ }
 
 "class"			{ return TOK_CLASS; }
 "public"		{ return TOK_PUBLIC; }
@@ -72,7 +76,7 @@ int yycolumn;
 ","				{ return TOK_COM; }
 "!"				{ return TOK_NOT; }
 
-[a-zA-Z_][a-zA-Z0-9_]*	{ return TOK_IDENTIFIER; }
+[a-zA-Z_][a-zA-Z0-9_]*	{ yylval = new ASTIdentifier(yylloc, yytext); return TOK_IDENTIFIER; }
 [0-9]+			{ return TOK_NUM; }
 
 .				{ return TOK_UNEXPECTED; }

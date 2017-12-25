@@ -27,11 +27,13 @@ class ASTNodePostOrderVisitor;
 class ASTNode {
 	std::list<std::shared_ptr<ASTNode> >::iterator pool_handle;
 	std::vector<std::shared_ptr<ASTNode> > ch;
+	yyltype loc;
 private:
 	virtual void Accept(ASTNodeVisitor &visitor, int level);
 public:
 	ASTNode();
-	ASTNode(std::initializer_list<ASTNode *> l);
+	ASTNode(const yyltype &loc);
+	ASTNode(const yyltype &loc, std::initializer_list<ASTNode *> l);
 	virtual ~ASTNode();
 	std::shared_ptr<ASTNode> GetSharedPtr();
 	void AddChild(std::shared_ptr<ASTNode> ch_ptr);
@@ -49,7 +51,7 @@ class ASTIdentifier : public ASTNode {
 private:
 	//virtual void Accept(ASTNodeVisitor &visitor, int level) override;
 public:
-	ASTIdentifier(const std::string &id);
+	ASTIdentifier(const yyltype &loc, const std::string &id);
 };
 
 

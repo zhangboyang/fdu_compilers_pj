@@ -46,33 +46,49 @@ int MiniJavaC::GetChar()
 	return lines[ln][col++];
 }
 
-void MiniJavaC::DumpContent(unsigned ln1, unsigned col1, unsigned ln2, unsigned col2)
+void MiniJavaC::DumpContent(const yyltype &loc)
 {
+	printf("at [(%d,%d):(%d,%d)]\n", loc.first_line, loc.first_column, loc.last_line, loc.last_column);
 	int tabwidth = 4;
-	for (unsigned i = ln1; i <= ln2; i++) {
-		printf("%5u | ", ln1);
-		for (unsigned j = 1; j <= lines[i - 1].length(); j++) {
-			if (lines[i - 1][j - 1] != '\t') {
-				printf("%c", lines[i - 1][j - 1]);
-			} else {
-				printf("%*s", tabwidth, "");
+	char ch = ' ', ch2;
+	for (int i = loc.first_line; i <= loc.last_line; i++) {
+		if (i - 1 < lines.size()) {
+			printf("%5u | ", i);
+			for (int j = 1; j <= lines[i - 1].length(); j++) {
+				if (lines[i - 1][j - 1] != '\t') {
+					printf("%c", lines[i - 1][j - 1]);
+				} else {
+					printf("%*s", tabwidth, "");
+				}
 			}
-		}
-		printf("%5s | ", "");
-		for (unsigned j = 1; j <= lines[i - 1].length(); j++) {
-			printf("%c", (i == ln1 && j == col1) || (i == ln2 && j == col2) ? '^' : ' ');
-			if (lines[i - 1][j - 1] == '\t') {
-				printf("%*s", tabwidth - 1, "");
+			printf("%5s | ", "");
+			for (int j = 1; j <= lines[i - 1].length(); j++) {
+				ch2 = ch;
+				if (i == loc.first_line && j == loc.first_column) {
+					ch = '~';
+					ch2 = '^';
+				}
+				if (i == loc.last_line && j == loc.last_column) {
+					ch = ' ';
+					ch2 = '^';
+				}
+				printf("%c", ch2);
+				if (lines[i - 1][j - 1] == '\t') {
+					for (int k = 1; k < tabwidth; k++) {
+						printf("%c", ch2);
+					}
+				}
 			}
+			printf("\n");
+		} else {
+			printf("%5s | unable to dump source code\n", "");
 		}
-		printf("\n");
 	}
 }
 
-void MiniJavaC::ReportError(unsigned ln1, unsigned col1, unsigned ln2, unsigned col2, const char *msg)
+void MiniJavaC::ReportError(const yyltype &loc, const char *msg)
 {
-	printf("at [(%d,%d):(%d,%d)]\n", ln1, col1, ln2, col2);
-	DumpContent(ln1, col1, ln2, col2);
+	DumpContent(loc);
 	printf(" %s\n", msg);
 }
 

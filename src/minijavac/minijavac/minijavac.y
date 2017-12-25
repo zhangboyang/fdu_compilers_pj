@@ -70,7 +70,7 @@ ClassDeclarationList
 ;
 
 MainClass
-  : TOK_CLASS Identifier TOK_LB TOK_PUBLIC TOK_STATIC TOK_VOID TOK_MAIN TOK_LP TOK_STRING TOK_LS TOK_RS Identifier TOK_RP TOK_LB Statement TOK_RB TOK_RB
+  : TOK_CLASS Identifier TOK_LB TOK_PUBLIC TOK_STATIC TOK_VOID TOK_MAIN TOK_LP TOK_STRING TOK_LS TOK_RS Identifier TOK_RP TOK_LB Statement TOK_RB TOK_RB { MiniJavaC::Instance()->DumpContent(@$); }
 ;
 
 ClassDeclaration
@@ -163,6 +163,6 @@ Identifier
 
 void yyerror(const char *s)
 {
-	MiniJavaC::Instance()->ReportError(yylloc.first_line, yylloc.first_column, yylloc.last_line, yylloc.last_column, s);
+	MiniJavaC::Instance()->ReportError(yylloc, s);
 }
 

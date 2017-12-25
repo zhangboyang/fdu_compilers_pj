@@ -9,13 +9,16 @@ struct yyltype
   int last_column;
 };
 
+class ASTNode;
+
 #define YYSTYPE ASTNode *
 
 extern int yycolumn;
 extern int yylex();
 extern void yyerror(const char *s);
 
-#include <vector>
+
+////// the MiniJavaC class //////
 
 class MiniJavaC {
 	std::vector<std::string> lines;
@@ -27,11 +30,11 @@ private:
 	MiniJavaC();
 public:
 	int GetChar();
-	void ReportError(unsigned ln1, unsigned col1, unsigned ln2, unsigned col2, const char *msg);
+	void ReportError(const yyltype &loc, const char *msg);
 	static MiniJavaC *Instance();
 
 	void OpenFile(const char *filename);
-	void DumpContent(unsigned ln1, unsigned col1, unsigned ln2, unsigned col2);
+	void DumpContent(const yyltype &loc);
 	void Compile();
 };
 

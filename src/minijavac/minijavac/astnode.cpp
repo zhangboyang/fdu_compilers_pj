@@ -46,8 +46,13 @@ void ASTNodePool::Shrink()
 ASTNode::ASTNode()
 {
 	pool_handle = ASTNodePool::Instance()->RegisterNode(this);
+	memset(&loc, 0, sizeof(loc));
 }
-ASTNode::ASTNode(std::initializer_list<ASTNode *> l) : ASTNode()
+ASTNode::ASTNode(const yyltype &loc) : ASTNode()
+{
+	this->loc = loc;
+}
+ASTNode::ASTNode(const yyltype &loc, std::initializer_list<ASTNode *> l) : ASTNode(loc)
 {
 	for (auto ptr: l) {
 		AddChild(ptr);
@@ -56,7 +61,9 @@ ASTNode::ASTNode(std::initializer_list<ASTNode *> l) : ASTNode()
 
 ASTNode::~ASTNode()
 {
+	MiniJavaC::Instance()->DumpContent(loc);
 }
+
 
 std::shared_ptr<ASTNode> ASTNode::GetSharedPtr()
 {
@@ -98,7 +105,7 @@ void ASTNode::RecursiveAccept(ASTNodePostOrderVisitor &visitor, int level)
 
 //////////////// ASTNode derived classes ////////////////
 
-ASTIdentifier::ASTIdentifier(const std::string &id) : id(id)
+ASTIdentifier::ASTIdentifier(const yyltype &loc, const std::string &id) : ASTNode(loc), id(id)
 {
 }
 
