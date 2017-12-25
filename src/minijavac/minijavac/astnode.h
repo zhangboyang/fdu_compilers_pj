@@ -83,14 +83,14 @@ public:
 
 
 class ASTBinaryExpression : public ASTExpression {
-	int op;
 public:
+	int op;
 	ASTBinaryExpression(const yyltype &loc, std::initializer_list<ASTNode *> l, int op);
 };
 
 class ASTUnaryExpression : public ASTExpression {
-	int op;
 public:
+	int op;
 	ASTUnaryExpression(const yyltype &loc, std::initializer_list<ASTNode *> l, int op);
 };
 
@@ -124,8 +124,8 @@ class ASTStatement : public ASTNode {
 	using ASTNode::ASTNode;
 };
 
-class ASTStatementList : public ASTStatement {
-	using ASTStatement::ASTStatement;
+class ASTStatementList : public ASTNode {
+	using ASTNode::ASTNode;
 };
 
 
@@ -147,6 +147,22 @@ class ASTIfElseStatement : public ASTStatement {
 class ASTBlockStatement : public ASTStatement {
 	using ASTStatement::ASTStatement;
 };
+
+
+// ASTType
+class ASTType : public ASTNode {
+public:
+	enum VarType {
+		VT_INT,
+		VT_INTARRAY,
+		VT_BOOLEAN,
+		VT_CLASS,
+	};
+
+	VarType type;
+	ASTType(const yyltype &loc, std::initializer_list<ASTNode *> l, VarType type);
+};
+
 
 
 

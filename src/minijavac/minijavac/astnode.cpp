@@ -127,6 +127,11 @@ ASTUnaryExpression::ASTUnaryExpression(const yyltype &loc, std::initializer_list
 }
 
 
+
+ASTType::ASTType(const yyltype &loc, std::initializer_list<ASTNode *> l, VarType type) : ASTNode(loc, l), type(type)
+{
+}
+
 //////////////// default ASTNodeVisitor ////////////////
 
 void ASTNodeVisitor::Visit(ASTNode *node, int level)

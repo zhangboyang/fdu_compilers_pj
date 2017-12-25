@@ -71,7 +71,7 @@ ClassDeclarationList
 
 MainClass
   : TOK_CLASS Identifier TOK_LB TOK_PUBLIC TOK_STATIC TOK_VOID TOK_MAIN TOK_LP TOK_STRING TOK_LS TOK_RS Identifier TOK_RP TOK_LB Statement TOK_RB TOK_RB
-    { $15->Dump(); }
+    {  }
 ;
 
 ClassDeclaration
@@ -109,9 +109,13 @@ ArgDeclarationList2
 
 Type
   : TOK_INT TOK_LS TOK_RS
+    { $$ = new ASTType(@$, {}, ASTType::VT_INTARRAY); }
   | TOK_BOOLEAN
+    { $$ = new ASTType(@$, {}, ASTType::VT_BOOLEAN); }
   | TOK_INT
+    { $$ = new ASTType(@$, {}, ASTType::VT_INT); }
   | Identifier
+    { $$ = new ASTType(@$, { $1 }, ASTType::VT_CLASS); }
 ;
 
 Statement
