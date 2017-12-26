@@ -62,7 +62,7 @@
 %%
 Goal
   : MainClass ClassDeclarationList
-    { MiniJavaC::Instance()->goal = (new ASTGoal(@$, { $1, $2 }))->GetSharedPtr(); }
+    { MiniJavaC::Instance()->goal = std::dynamic_pointer_cast<ASTGoal>((new ASTGoal(@$, { $1, $2 }))->GetSharedPtr()); }
 ;
 
 ClassDeclarationList
@@ -85,7 +85,7 @@ ClassDeclaration
 VarDeclarationList
   :
 	{ $$ = new ASTVarDeclarationList(@$); }
-  | VarDeclarationList VarDeclaration
+  | VarDeclarationList VarDeclaration TOK_SEMI
     { $$ = new ASTVarDeclarationList(@$, { $1, $2 }); }
 ;
 
@@ -97,7 +97,7 @@ MethodDeclarationList
 ;
 
 VarDeclaration
-  : Type Identifier TOK_SEMI
+  : Type Identifier
     { $$ = new ASTVarDeclaration(@$, { $1, $2 }); }
 ;
 
@@ -108,16 +108,16 @@ MethodDeclaration
 
 ArgDeclarationList1
   :
-	{ $$ = new ArgDeclarationList1(@$); }
-  | Type Identifier ArgDeclarationList2
-    { $$ = new ArgDeclarationList1(@$, { $1, $2, $3 }); }
+	{ $$ = new ASTArgDeclarationList1(@$); }
+  | VarDeclaration ArgDeclarationList2
+    { $$ = new ASTArgDeclarationList1(@$, { $1, $2 }); }
 ;
 
 ArgDeclarationList2
   :
-	{ $$ = new ArgDeclarationList2(@$); }
-  | ArgDeclarationList2 TOK_COM Type Identifier
-	{ $$ = new ArgDeclarationList2(@$, { $1, $3, $4 }); }
+	{ $$ = new ASTArgDeclarationList2(@$); }
+  | ArgDeclarationList2 TOK_COM VarDeclaration
+	{ $$ = new ASTArgDeclarationList2(@$, { $1, $3 }); }
 ;
 
 Type

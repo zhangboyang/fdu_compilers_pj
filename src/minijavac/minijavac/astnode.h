@@ -178,23 +178,32 @@ public:
 
 
 // ASTArgDeclarationList
-
-class ArgDeclarationList1 : public ASTNode {
+class VarDeclList;
+class ASTArgDeclarationList1 : public ASTNode {
 	using ASTNode::ASTNode;
+public:
+	VarDeclList GetVarDeclList();
 };
-class ArgDeclarationList2 : public ASTNode {
+class ASTArgDeclarationList2 : public ASTNode {
 	using ASTNode::ASTNode;
 };
 
 
 
 // ASTMethodDeclaration
-
+class MethodDeclList;
 class ASTMethodDeclaration : public ASTNode {
 	using ASTNode::ASTNode;
+public:
+	virtual void Accept(ASTNodeVisitor &visitor, int level) override;
+	std::shared_ptr<ASTType> GetASTType();
+	std::shared_ptr<ASTIdentifier> GetASTIdentifier();
+	std::shared_ptr<ASTArgDeclarationList1> GetASTArgDeclarationList1();
 };
 class ASTMethodDeclarationList : public ASTNode {
 	using ASTNode::ASTNode;
+public:
+	MethodDeclList GetMethodDeclList();
 };
 
 
@@ -235,8 +244,11 @@ class ASTMainClass : public ASTNode {
 };
 
 // ASTGoal
+class ClassInfoList;
 class ASTGoal : public ASTNode {
 	using ASTNode::ASTNode;
+public:
+	ClassInfoList GetClassInfoList();
 };
 
 
@@ -256,6 +268,7 @@ public:
 
 	virtual void Visit(ASTClassDeclaration *node, int level);
 	virtual void Visit(ASTVarDeclaration *node, int level);
+	virtual void Visit(ASTMethodDeclaration *node, int level);
 };
 
 

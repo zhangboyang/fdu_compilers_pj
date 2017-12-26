@@ -27,7 +27,7 @@ void ASTNodePool::Shrink()
 		flag = false;
 		for (auto it = pool.begin(); it != pool.end(); ) {
 			if (it->use_count() == 1) {
-				printf("ASTNodePool::Shrink() delete %p\n", it->get());
+				//printf("ASTNodePool::Shrink() delete %p\n", it->get());
 				pool.erase(it++);
 				flag = true;
 			} else {
@@ -103,6 +103,13 @@ void ASTNode::Accept(ASTNodeVisitor &visitor, int level)
 	visitor.Visit(this, level);
 }
 
+
+ClassInfoList ASTGoal::GetClassInfoList()
+{
+	ClassInfoVisitor v;
+	ASTNode::Accept(v);
+	return std::move(v.list);
+}
 
 //////////////// ASTNode derived classes ////////////////
 
@@ -207,11 +214,36 @@ std::shared_ptr<ASTIdentifier> ASTVarDeclaration::GetASTIdentifier()
 	return std::dynamic_pointer_cast<ASTIdentifier>(ch[1]);
 }
 
+std::shared_ptr<ASTType> ASTMethodDeclaration::GetASTType()
+{
+	return std::dynamic_pointer_cast<ASTType>(ch[0]);
+}
+std::shared_ptr<ASTIdentifier> ASTMethodDeclaration::GetASTIdentifier()
+{
+	return std::dynamic_pointer_cast<ASTIdentifier>(ch[1]);
+}
+std::shared_ptr<ASTArgDeclarationList1> ASTMethodDeclaration::GetASTArgDeclarationList1()
+{
+	return std::dynamic_pointer_cast<ASTArgDeclarationList1>(ch[2]);
+}
+MethodDeclList ASTMethodDeclarationList::GetMethodDeclList()
+{
+	MethodDeclListVisitor v;
+	ASTNode::Accept(v);
+	return std::move(v.list);
+}
+
+VarDeclList ASTArgDeclarationList1::GetVarDeclList()
+{
+	VarDeclListVisitor v;
+	ASTNode::Accept(v);
+	return std::move(v.list);
+}
 VarDeclList ASTVarDeclarationList::GetVarDeclList()
 {
 	VarDeclListVisitor v;
 	ASTNode::Accept(v);
-	return std::move(v.var);
+	return std::move(v.list);
 }
 
 //////////////// default ASTNodeVisitor ////////////////
@@ -261,6 +293,11 @@ void ASTNodeVisitor::Visit(ASTVarDeclaration *node, int level)
 {
 	Visit(static_cast<ASTNode *>(node), level);
 }
+void ASTNodeVisitor::Visit(ASTMethodDeclaration *node, int level)
+{
+	Visit(static_cast<ASTNode *>(node), level);
+}
+
 
 
 // Accept
@@ -294,6 +331,10 @@ void ASTClassDeclaration::Accept(ASTNodeVisitor &visitor, int level)
 	visitor.Visit(this, level);
 }
 void ASTVarDeclaration::Accept(ASTNodeVisitor &visitor, int level)
+{
+	visitor.Visit(this, level);
+}
+void ASTMethodDeclaration::Accept(ASTNodeVisitor &visitor, int level)
 {
 	visitor.Visit(this, level);
 }

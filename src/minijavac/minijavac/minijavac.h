@@ -20,11 +20,13 @@ extern void yyerror(const char *s);
 
 ////// the MiniJavaC class //////
 
+class ASTGoal;
+
 class MiniJavaC {
 	std::vector<std::string> lines;
 	unsigned ln, col;
 public:
-	std::shared_ptr<ASTNode> goal;
+	std::shared_ptr<ASTGoal> goal;
 
 private:
 	MiniJavaC();

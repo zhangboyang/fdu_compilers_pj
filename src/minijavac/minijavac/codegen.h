@@ -56,16 +56,13 @@ public:
 	std::string clsname;
 };
 
+
+// VarDecl
+
 class VarDecl {
 public:
 	TypeInfo type;
 	std::string name;
-};
-
-class MethodDecl {
-public:
-	TypeInfo rettype;
-	std::vector<VarDecl> arg;
 };
 
 class VarDeclListItem {
@@ -75,41 +72,69 @@ public:
 	data_off_t size;
 };
 
-class MethodDeclListItem {
-public:
-	MethodDecl decl;
-	data_off_t off;
-};
-
 class VarDeclList : public std::vector<VarDeclListItem> {
 public:
 	void Dump();
 	data_off_t GetTotalSize();
 };
 
-class MethodDeclList : public std::vector<MethodDeclListItem> {
-public:
+// MethodDecl
 
+class MethodDecl {
+public:
+	TypeInfo rettype;
+	std::string name;
+	VarDeclList arg;
 };
 
-class ClassInfo {
+class MethodDeclListItem {
+public:
+	MethodDecl decl;
+	data_off_t off;
+	std::shared_ptr<ASTMethodDeclaration> ptr;
+};
+
+class MethodDeclList : public std::vector<MethodDeclListItem> {
+public:
+	void Dump();
+	data_off_t GetTotalSize();
+};
+
+
+
+
+class ClassInfoItem {
 public:
 	std::string name;
 	VarDeclList var;
 	MethodDeclList method;
+	std::shared_ptr<ASTClassDeclaration> ptr;
+public:
+	void Dump();
 };
 
+class ClassInfoList : public std::vector<ClassInfoItem> {
+public:
+	void Dump();
+};
 
 // Visitor
 
 class VarDeclListVisitor : public ASTNodeVisitor {
 public:
-	VarDeclList var;
+	VarDeclList list;
 	virtual void Visit(ASTVarDeclaration *node, int level) override;
+};
+
+class MethodDeclListVisitor : public ASTNodeVisitor {
+public:
+	MethodDeclList list;
+	virtual void Visit(ASTMethodDeclaration *node, int level) override;
 };
 
 class ClassInfoVisitor : public ASTNodeVisitor {
 public:
+	ClassInfoList list;
 	virtual void Visit(ASTClassDeclaration *node, int level) override;
 };
 
