@@ -34,6 +34,7 @@ void JSONVisitor::OutKeyValue(const char *key, int value)
 void JSONVisitor::DumpASTToJSON(const char *jsonfile, ASTNode *root, const std::vector<std::string> &lines)
 {
 	fp = fopen(jsonfile, "w");
+	assert(fp);
 	
 	std::string srctext;
 	for (const auto &l: lines) {

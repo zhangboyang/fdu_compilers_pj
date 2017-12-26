@@ -50,6 +50,31 @@ public:
 
 ////////// CodeGen Visitor //////////
 
+template<class T>
+class NameIndexedList : public std::vector<T> {
+private:
+	std::map<std::string, size_t> listindex;
+public:
+	bool Append(const T &item)
+	{
+		if (listindex.insert(std::make_pair(item.GetName(), std::vector<T>::size())).second) {
+			std::vector<T>::push_back(item);
+			return true;
+		} else {
+			return false;
+		}
+	}
+	std::vector<T>::iterator Find(const std::string &name)
+	{
+		auto it = listindex.find(name);
+		if (it == listindex.end()) {
+			return end();
+		} else {
+			return begin() + it->second;
+		}
+	}
+};
+
 class TypeInfo {
 public:
 	ASTType::VarType type;
@@ -65,14 +90,16 @@ public:
 	std::string name;
 };
 
-class VarDeclListItem {
+class VarDeclItem {
 public:
 	VarDecl decl;
 	data_off_t off;
 	data_off_t size;
+public:
+	const std::string &GetName() const;
 };
 
-class VarDeclList : public std::vector<VarDeclListItem> {
+class VarDeclList : public NameIndexedList<VarDeclItem> {
 public:
 	void Dump();
 	data_off_t GetTotalSize();
@@ -87,14 +114,16 @@ public:
 	VarDeclList arg;
 };
 
-class MethodDeclListItem {
+class MethodDeclItem {
 public:
 	MethodDecl decl;
 	data_off_t off;
 	std::shared_ptr<ASTMethodDeclaration> ptr;
+public:
+	const std::string &GetName() const;
 };
 
-class MethodDeclList : public std::vector<MethodDeclListItem> {
+class MethodDeclList : public NameIndexedList<MethodDeclItem> {
 public:
 	void Dump();
 	data_off_t GetTotalSize();
@@ -110,10 +139,11 @@ public:
 	MethodDeclList method;
 	std::shared_ptr<ASTClassDeclaration> ptr;
 public:
+	const std::string &GetName() const;
 	void Dump();
 };
 
-class ClassInfoList : public std::vector<ClassInfoItem> {
+class ClassInfoList : public NameIndexedList<ClassInfoItem> {
 public:
 	void Dump();
 };

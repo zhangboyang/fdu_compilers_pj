@@ -16,6 +16,7 @@ void MiniJavaC::OpenFile(const char *filename)
 	lines.push_back(std::string());
 	
 	FILE *fp = fopen(filename, "r");
+	assert(fp);
 	int ch;
 
 	while ((ch = fgetc(fp)) != EOF) {
@@ -93,7 +94,8 @@ void MiniJavaC::DumpContent(const yyltype &loc, FILE *fp)
 void MiniJavaC::ReportError(const yyltype &loc, const char *msg)
 {
 	DumpContent(loc);
-	printf(" %s\n", msg);
+	printf("ERROR : %s\n", msg);
+	printf("\n");
 }
 
 

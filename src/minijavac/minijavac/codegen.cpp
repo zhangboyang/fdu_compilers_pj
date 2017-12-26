@@ -1,5 +1,10 @@
 #include "common.h"
 
+const std::string &VarDeclItem::GetName() const
+{
+	return this->decl.name;
+}
+
 data_off_t VarDeclList::GetTotalSize()
 {
 	if (this->empty()) {
@@ -19,14 +24,16 @@ void VarDeclList::Dump()
 
 void VarDeclListVisitor::Visit(ASTVarDeclaration *node, int level)
 {
-	list.push_back(VarDeclListItem {
+	if (!list.Append(VarDeclItem {
 		VarDecl {
 			node->GetASTType()->GetTypeInfo(),
 			node->GetASTIdentifier()->id,
 		},
 		list.GetTotalSize(),
 		node->GetASTType()->GetTypeSize(),
-	});
+	})) {
+		MiniJavaC::Instance()->ReportError(node->GetASTIdentifier()->loc, "duplicate variable");
+	}
 }
 
 data_off_t MethodDeclList::GetTotalSize()
@@ -34,6 +41,10 @@ data_off_t MethodDeclList::GetTotalSize()
 	return this->size() * 4;
 }
 
+const std::string &MethodDeclItem::GetName() const
+{
+	return this->decl.name;
+}
 void MethodDeclList::Dump()
 {
 	for (auto &item: *this) {
@@ -44,7 +55,7 @@ void MethodDeclList::Dump()
 
 void MethodDeclListVisitor::Visit(ASTMethodDeclaration *node, int level)
 {
-	list.push_back(MethodDeclListItem {
+	if (!list.Append(MethodDeclItem {
 		MethodDecl {
 			node->GetASTType()->GetTypeInfo(),
 			node->GetASTIdentifier()->id,
@@ -52,9 +63,15 @@ void MethodDeclListVisitor::Visit(ASTMethodDeclaration *node, int level)
 		},
 		list.GetTotalSize(),
 		std::dynamic_pointer_cast<ASTMethodDeclaration>(node->GetSharedPtr()),
-	});
+	})) {
+		MiniJavaC::Instance()->ReportError(node->GetASTIdentifier()->loc, "duplicate method");
+	}
 }
 
+const std::string &ClassInfoItem::GetName() const
+{
+	return name;
+}
 void ClassInfoItem::Dump()
 {
 	printf("class %s:\n", name.c_str());
@@ -72,11 +89,13 @@ void ClassInfoList::Dump()
 }
 void ClassInfoVisitor::Visit(ASTClassDeclaration *node, int level)
 {
-	list.push_back(ClassInfoItem{
+	if (!list.Append(ClassInfoItem{
 		node->GetASTIdentifier()->id,
 		node->GetASTVarDeclarationList()->GetVarDeclList(),
 		node->GetASTMethodDeclarationList()->GetMethodDeclList(),
 		std::dynamic_pointer_cast<ASTClassDeclaration>(node->GetSharedPtr()),
-	});
+	})) {
+		MiniJavaC::Instance()->ReportError(node->GetASTIdentifier()->loc, "duplicate class");
+	}
 }
 

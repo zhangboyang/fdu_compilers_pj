@@ -294,3 +294,4 @@ __pycache__/
 *.tab.h
 src/minijavac/minijavac/out.txt
 src/minijavac/minijavac/out.json
+src/minijavac/minijavac/test.java

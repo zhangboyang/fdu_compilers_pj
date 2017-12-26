@@ -4,6 +4,7 @@ void PrintVisitor::DumpASTToTextFile(const char *txtfile, ASTNode *root, bool du
 {
 	this->dumpcontent = dumpcontent;
 	if (txtfile) fp = fopen(txtfile, "w"); else fp = stdout;
+	assert(fp);
 	root->Accept(*this);
 	if (txtfile) fclose(fp);
 }
