@@ -236,6 +236,9 @@ public:
 
 
 class PrintVisitor : public ASTNodeVisitor {
+	FILE *fp;
+	bool dumpcontent;
+
 	virtual void Visit(ASTNode *node, int level) override;
 	virtual void Visit(ASTIdentifier *node, int level) override;
 	virtual void Visit(ASTBoolean *node, int level) override;
@@ -244,10 +247,15 @@ class PrintVisitor : public ASTNodeVisitor {
 	virtual void Visit(ASTUnaryExpression *node, int level) override;
 	virtual void Visit(ASTType *node, int level) override;
 	void Visit(ASTNode *node, int level, std::function<void()> func);
+
+public:
+
+	void DumpASTToTextFile(const char *txtfile, ASTNode *root, bool dumpcontent);
 };
 
 class JSONVisitor : public ASTNodeVisitor {
 	FILE *fp;
+
 	void OutEscapedString(const char *s);
 	void OutQuotedString(const char *s);
 

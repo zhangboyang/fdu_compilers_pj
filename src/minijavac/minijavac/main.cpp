@@ -3,7 +3,7 @@
 
 int main()
 {
-	freopen("out.txt", "w", stdout);
+	//freopen("out.txt", "w", stdout);
 
 	#ifdef _DEBUG
 	_CrtSetDbgFlag ( _CRTDBG_ALLOC_MEM_DF | _CRTDBG_LEAK_CHECK_DF );  
@@ -18,13 +18,14 @@ int main()
 	//MiniJavaC::Instance()->OpenFile("../../../tests/QuickSort.java");
 	//MiniJavaC::Instance()->OpenFile("../../../tests/TreeVisitor.java");
 
-	MiniJavaC::Instance()->Compile();
+	MiniJavaC::Instance()->ParseAST();
 	assert(MiniJavaC::Instance()->goal);
-
-	MiniJavaC::Instance()->DumpASTToScreen();
-
+	
+	
+	MiniJavaC::Instance()->DumpASTToTextFile("out.txt", true);
+	
 	MiniJavaC::Instance()->DumpASTToJSON("out.json");
-
-	//system("pause");
+	
+	system("pause");
 	return 0;
 }

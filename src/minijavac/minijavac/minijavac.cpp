@@ -48,20 +48,24 @@ int MiniJavaC::GetChar()
 
 void MiniJavaC::DumpContent(const yyltype &loc)
 {
-	printf(" at [(%d,%d):(%d,%d)]\n", loc.first_line, loc.first_column, loc.last_line, loc.last_column);
+	DumpContent(loc, stdout);
+}
+void MiniJavaC::DumpContent(const yyltype &loc, FILE *fp)
+{
+	fprintf(fp, " at [(%d,%d):(%d,%d)]\n", loc.first_line, loc.first_column, loc.last_line, loc.last_column);
 	int tabwidth = 4;
 	char ch = ' ', ch2;
 	for (int i = loc.first_line; i <= loc.last_line; i++) {
 		if (i - 1 < lines.size()) {
-			printf("%5u | ", i);
+			fprintf(fp, "%5u | ", i);
 			for (int j = 1; j <= lines[i - 1].length(); j++) {
 				if (lines[i - 1][j - 1] != '\t') {
-					printf("%c", lines[i - 1][j - 1]);
+					fprintf(fp, "%c", lines[i - 1][j - 1]);
 				} else {
-					printf("%*s", tabwidth, "");
+					fprintf(fp, "%*s", tabwidth, "");
 				}
 			}
-			printf("%5s | ", "");
+			fprintf(fp, "%5s | ", "");
 			for (int j = 1; j <= lines[i - 1].length(); j++) {
 				ch2 = ch;
 				if (i == loc.first_line && j == loc.first_column) {
@@ -72,16 +76,16 @@ void MiniJavaC::DumpContent(const yyltype &loc)
 					ch = ' ';
 					ch2 = '^';
 				}
-				printf("%c", ch2);
+				fprintf(fp, "%c", ch2);
 				if (lines[i - 1][j - 1] == '\t') {
 					for (int k = 1; k < tabwidth; k++) {
-						printf("%c", ch2);
+						fprintf(fp, "%c", ch2);
 					}
 				}
 			}
-			printf("\n");
+			fprintf(fp, "\n");
 		} else {
-			printf("%5s | unable to dump source code\n", "");
+			fprintf(fp, "%5s | unable to dump source code\n", "");
 		}
 	}
 }
@@ -93,7 +97,7 @@ void MiniJavaC::ReportError(const yyltype &loc, const char *msg)
 }
 
 
-void MiniJavaC::Compile()
+void MiniJavaC::ParseAST()
 {
 	yycolumn = 1;
 	//yydebug = 1;
@@ -101,10 +105,10 @@ void MiniJavaC::Compile()
 	ASTNodePool::Instance()->Shrink();
 }
 
-void MiniJavaC::DumpASTToScreen()
+void MiniJavaC::DumpASTToTextFile(const char *txtfile, bool dumpcontent)
 {
 	PrintVisitor v;
-	goal->Accept(v);
+	v.DumpASTToTextFile(txtfile, goal.get(), dumpcontent);
 }
 
 void MiniJavaC::DumpASTToJSON(const char *jsonfile)

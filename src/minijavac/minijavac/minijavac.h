@@ -34,9 +34,10 @@ public:
 	static MiniJavaC *Instance();
 
 	void OpenFile(const char *filename);
+	void DumpContent(const yyltype &loc, FILE *fp);
 	void DumpContent(const yyltype &loc);
-	void Compile();
-	void DumpASTToScreen();
+	void ParseAST();
+	void DumpASTToTextFile(const char *txtfile, bool dumpcontent);
 	void DumpASTToJSON(const char *jsonfile);
 };
 

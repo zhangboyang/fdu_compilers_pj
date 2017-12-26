@@ -27,7 +27,7 @@ void ASTNodePool::Shrink()
 		flag = false;
 		for (auto it = pool.begin(); it != pool.end(); ) {
 			if (it->use_count() == 1) {
-				//printf("ASTNodePool::Shrink() delete %p\n", it->get());
+				printf("ASTNodePool::Shrink() delete %p\n", it->get());
 				pool.erase(it++);
 				flag = true;
 			} else {
