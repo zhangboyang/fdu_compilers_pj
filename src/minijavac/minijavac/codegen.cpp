@@ -242,7 +242,13 @@ void CodeGen::GenerateCodeForClassMethod(ClassInfoItem &cls, MethodDeclItem &met
 
 	code.AppendItem(DataItem::New()->AddU8({0x55})->SetComment("PUSH EBP"));
 	code.AppendItem(DataItem::New()->AddU8({0x8B, 0xEC})->SetComment("MOV EBP,ESP"));
-	code.AppendItem(DataItem::New()->AddU8({0x81, 0xEC})->AddU32({(uint32_t) method.localvar.GetTotalSize()})->SetComment("SUB ESP,frame_size"));
+	
+	data_off_t localsize = method.localvar.GetTotalSize();
+	assert(localsize % 4 == 0);
+	for (data_off_t i = 0; i < localsize / 4; i++) {
+		code.AppendItem(DataItem::New()->AddU8({0x6A, 0x00})->SetComment("PUSH 0"));
+	}
+
 
 	GenerateCodeForASTNode(method.ptr->GetASTStatementList());
 
