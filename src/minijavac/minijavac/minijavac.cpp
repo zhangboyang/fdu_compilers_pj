@@ -101,6 +101,7 @@ void MiniJavaC::ReportError(const yyltype &loc, const char *msg)
 
 void MiniJavaC::ParseAST()
 {
+	printf("[*] Generating AST ...\n");
 	yycolumn = 1;
 	//yydebug = 1;
 	yyparse();

@@ -103,3 +103,56 @@ void ClassInfoVisitor::Visit(ASTClassDeclaration *node, int level)
 	}
 }
 
+
+// Code Generator
+
+CodeGen::CodeGen()
+{
+}
+CodeGen *CodeGen::Instance()
+{
+	static CodeGen inst;
+	return &inst;
+}
+
+void CodeGen::Visit(ASTStatement *node, int level)
+{
+	printf("unhandled: %s\n", typeid(node).name());
+	MiniJavaC::Instance()->ReportError(node->loc, "unhandled statement");
+}
+void CodeGen::Visit(ASTExpression *node, int level)
+{
+	printf("unhandled: %s\n", typeid(node).name());
+	MiniJavaC::Instance()->ReportError(node->loc, "unhandled expression");
+}
+
+void CodeGen::GenerateCodeForASTNode(std::shared_ptr<ASTNode> node)
+{
+	node->ASTNode::Accept(*this);
+}
+void CodeGen::GenerateCodeForMainMethod(std::shared_ptr<ASTMainClass> maincls)
+{
+	// FIXME
+	GenerateCodeForASTNode(maincls->GetASTStatement());
+}
+void CodeGen::GenerateCodeForClassMethod(ClassInfoItem &cls, MethodDeclItem &method)
+{
+	// FIXME
+	GenerateCodeForASTNode(method.ptr->GetASTStatementList());
+}
+void CodeGen::GenerateCode()
+{
+	printf("[*] Generating type information ...\n");
+	clsinfo = MiniJavaC::Instance()->goal->GetClassInfoList();
+
+	printf("[*[ Generating code for main() ...\n");
+	GenerateCodeForMainMethod(MiniJavaC::Instance()->goal->GetASTMainClass());
+
+	for (auto &cls: clsinfo) {
+		printf("[*] Generating code for class %s ...\n", cls.GetName().c_str());
+		for (auto &method: cls.method) {
+			printf("  [*] Generating code for %s::%s() ...\n", cls.GetName().c_str(), method.GetName().c_str());
+			GenerateCodeForClassMethod(cls, method);
+		}
+	}
+}

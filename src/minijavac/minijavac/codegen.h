@@ -170,14 +170,22 @@ public:
 };
 
 
-class MethodInfo {
-	
-};
 
-class MethodInfoVisitor {
 
-};
 
-class CodeGenVisitor : public ASTNodeVisitor {
-	
+class CodeGen : public ASTNodeVisitor {
+	ClassInfoList clsinfo;
+
+private:
+	CodeGen();
+	void GenerateCodeForASTNode(std::shared_ptr<ASTNode> node);
+	void GenerateCodeForMainMethod(std::shared_ptr<ASTMainClass> maincls);
+	void GenerateCodeForClassMethod(ClassInfoItem &cls, MethodDeclItem &method);
+public:
+	virtual void Visit(ASTStatement *node, int level) override;
+	virtual void Visit(ASTExpression *node, int level) override;
+public:
+	static CodeGen *Instance();
+
+	void GenerateCode();
 };

@@ -25,6 +25,7 @@ class ASTGoal;
 class MiniJavaC {
 	std::vector<std::string> lines;
 	unsigned ln, col;
+
 public:
 	std::shared_ptr<ASTGoal> goal;
 

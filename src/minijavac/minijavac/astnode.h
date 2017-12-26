@@ -51,6 +51,8 @@ public:
 
 class ASTExpression : public ASTNode {
 	using ASTNode::ASTNode;
+public:
+	virtual void Accept(ASTNodeVisitor &visitor, int level) override;
 };
 
 
@@ -100,18 +102,28 @@ public:
 
 class ASTArrayLengthExpression : public ASTExpression {
 	using ASTExpression::ASTExpression;
+public:
+	virtual void Accept(ASTNodeVisitor &visitor, int level) override;
 };
 class ASTFunctionCallExpression : public ASTExpression {
 	using ASTExpression::ASTExpression;
+public:
+	virtual void Accept(ASTNodeVisitor &visitor, int level) override;
 };
 class ASTThisExpression : public ASTExpression {
 	using ASTExpression::ASTExpression;
+public:
+	virtual void Accept(ASTNodeVisitor &visitor, int level) override;
 };
 class ASTNewIntArrayExpression : public ASTExpression {
 	using ASTExpression::ASTExpression;
+public:
+	virtual void Accept(ASTNodeVisitor &visitor, int level) override;
 };
 class ASTNewExpression : public ASTExpression {
 	using ASTExpression::ASTExpression;
+public:
+	virtual void Accept(ASTNodeVisitor &visitor, int level) override;
 };
 
 class ASTArgExpressionList1 : public ASTNode {
@@ -126,6 +138,8 @@ class ASTArgExpressionList2 : public ASTNode {
 
 class ASTStatement : public ASTNode {
 	using ASTNode::ASTNode;
+public:
+	virtual void Accept(ASTNodeVisitor &visitor, int level) override;
 };
 
 class ASTStatementList : public ASTNode {
@@ -135,21 +149,33 @@ class ASTStatementList : public ASTNode {
 
 class ASTArrayAssignStatement : public ASTStatement {
 	using ASTStatement::ASTStatement;
+public:
+	virtual void Accept(ASTNodeVisitor &visitor, int level) override;
 };
 class ASTAssignStatement : public ASTStatement {
 	using ASTStatement::ASTStatement;
+public:
+	virtual void Accept(ASTNodeVisitor &visitor, int level) override;
 };
 class ASTPrintlnStatement : public ASTStatement {
 	using ASTStatement::ASTStatement;
+public:
+	virtual void Accept(ASTNodeVisitor &visitor, int level) override;
 };
 class ASTWhileStatement : public ASTStatement {
 	using ASTStatement::ASTStatement;
+public:
+	virtual void Accept(ASTNodeVisitor &visitor, int level) override;
 };
 class ASTIfElseStatement : public ASTStatement {
 	using ASTStatement::ASTStatement;
+public:
+	virtual void Accept(ASTNodeVisitor &visitor, int level) override;
 };
 class ASTBlockStatement : public ASTStatement {
 	using ASTStatement::ASTStatement;
+public:
+	virtual void Accept(ASTNodeVisitor &visitor, int level) override;
 };
 
 
@@ -201,6 +227,7 @@ public:
 	std::shared_ptr<ASTIdentifier> GetASTIdentifier();
 	std::shared_ptr<ASTArgDeclarationList1> GetASTArgDeclarationList1();
 	std::shared_ptr<ASTVarDeclarationList> GetASTVarDeclarationList();
+	std::shared_ptr<ASTStatementList> GetASTStatementList();
 };
 class ASTMethodDeclarationList : public ASTNode {
 	using ASTNode::ASTNode;
@@ -243,6 +270,8 @@ class ASTClassDeclarationList : public ASTNode {
 // ASTMainClass
 class ASTMainClass : public ASTNode {
 	using ASTNode::ASTNode;
+public:
+	std::shared_ptr<ASTStatement> GetASTStatement();
 };
 
 // ASTGoal
@@ -251,6 +280,7 @@ class ASTGoal : public ASTNode {
 	using ASTNode::ASTNode;
 public:
 	ClassInfoList GetClassInfoList();
+	std::shared_ptr<ASTMainClass> GetASTMainClass();
 };
 
 
@@ -261,16 +291,34 @@ protected:
 	void VisitChildren(ASTNode *node, int level);
 public:
 	virtual void Visit(ASTNode *node, int level);
-	virtual void Visit(ASTIdentifier *node, int level);
-	virtual void Visit(ASTBoolean *node, int level);
-	virtual void Visit(ASTNumber *node, int level);
-	virtual void Visit(ASTBinaryExpression *node, int level);
-	virtual void Visit(ASTUnaryExpression *node, int level);
+
 	virtual void Visit(ASTType *node, int level);
 
 	virtual void Visit(ASTClassDeclaration *node, int level);
 	virtual void Visit(ASTVarDeclaration *node, int level);
 	virtual void Visit(ASTMethodDeclaration *node, int level);
+
+	// statment
+	virtual void Visit(ASTStatement *node, int level);
+	virtual void Visit(ASTArrayAssignStatement *node, int level);
+	virtual void Visit(ASTAssignStatement *node, int level);
+	virtual void Visit(ASTPrintlnStatement *node, int level);
+	virtual void Visit(ASTWhileStatement *node, int level);
+	virtual void Visit(ASTIfElseStatement *node, int level);
+	virtual void Visit(ASTBlockStatement *node, int level);
+
+	// expression
+	virtual void Visit(ASTExpression *node, int level);
+	virtual void Visit(ASTIdentifier *node, int level);
+	virtual void Visit(ASTBoolean *node, int level);
+	virtual void Visit(ASTNumber *node, int level);
+	virtual void Visit(ASTBinaryExpression *node, int level);
+	virtual void Visit(ASTUnaryExpression *node, int level);
+	virtual void Visit(ASTArrayLengthExpression *node, int level);
+	virtual void Visit(ASTFunctionCallExpression *node, int level);
+	virtual void Visit(ASTThisExpression *node, int level);
+	virtual void Visit(ASTNewIntArrayExpression *node, int level);
+	virtual void Visit(ASTNewExpression *node, int level);
 };
 
 

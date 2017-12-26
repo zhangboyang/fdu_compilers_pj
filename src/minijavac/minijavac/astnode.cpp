@@ -98,12 +98,14 @@ void ASTNode::AddChild(ASTNode *ch_ptr)
 }
 
 
-void ASTNode::Accept(ASTNodeVisitor &visitor, int level)
+std::shared_ptr<ASTStatement> ASTMainClass::GetASTStatement()
 {
-	visitor.Visit(this, level);
+	return std::dynamic_pointer_cast<ASTStatement>(ch[2]);
 }
-
-
+std::shared_ptr<ASTMainClass> ASTGoal::GetASTMainClass()
+{
+	return std::dynamic_pointer_cast<ASTMainClass>(ch[0]);
+}
 ClassInfoList ASTGoal::GetClassInfoList()
 {
 	ClassInfoVisitor v;
@@ -230,6 +232,12 @@ std::shared_ptr<ASTVarDeclarationList> ASTMethodDeclaration::GetASTVarDeclaratio
 {
 	return std::dynamic_pointer_cast<ASTVarDeclarationList>(ch[3]);
 }
+std::shared_ptr<ASTStatementList> ASTMethodDeclaration::GetASTStatementList()
+{
+	return std::dynamic_pointer_cast<ASTStatementList>(ch[4]);
+}
+
+
 MethodDeclList ASTMethodDeclarationList::GetMethodDeclList()
 {
 	MethodDeclListVisitor v;
@@ -260,85 +268,80 @@ void ASTNodeVisitor::VisitChildren(ASTNode *node, int level)
 	}
 }
 
-// Visit
+////////// Visit
 void ASTNodeVisitor::Visit(ASTNode *node, int level)
 {
 	VisitChildren(node, level);
 }
-void ASTNodeVisitor::Visit(ASTIdentifier *node, int level)
-{
-	Visit(static_cast<ASTNode *>(node), level);
-}
-void ASTNodeVisitor::Visit(ASTBoolean *node, int level)
-{
-	Visit(static_cast<ASTNode *>(node), level);
-}
-void ASTNodeVisitor::Visit(ASTNumber *node, int level)
-{
-	Visit(static_cast<ASTNode *>(node), level);
-}
-void ASTNodeVisitor::Visit(ASTBinaryExpression *node, int level)
-{
-	Visit(static_cast<ASTNode *>(node), level);
-}
-void ASTNodeVisitor::Visit(ASTUnaryExpression *node, int level)
-{
-	Visit(static_cast<ASTNode *>(node), level);
-}
-void ASTNodeVisitor::Visit(ASTType *node, int level)
-{
-	Visit(static_cast<ASTNode *>(node), level);
-}
-void ASTNodeVisitor::Visit(ASTClassDeclaration *node, int level)
-{
-	Visit(static_cast<ASTNode *>(node), level);
-}
-void ASTNodeVisitor::Visit(ASTVarDeclaration *node, int level)
-{
-	Visit(static_cast<ASTNode *>(node), level);
-}
-void ASTNodeVisitor::Visit(ASTMethodDeclaration *node, int level)
-{
-	Visit(static_cast<ASTNode *>(node), level);
-}
+
+#define MAKE_VISIT(super, cls) \
+	void ASTNodeVisitor::Visit(cls *node, int level) \
+	{ \
+		Visit(static_cast<super *>(node), level); \
+	}
+
+MAKE_VISIT(ASTNode, ASTType)
+
+MAKE_VISIT(ASTNode, ASTClassDeclaration)
+MAKE_VISIT(ASTNode, ASTVarDeclaration)
+MAKE_VISIT(ASTNode, ASTMethodDeclaration)
+
+// statment
+MAKE_VISIT(ASTNode, ASTStatement)
+MAKE_VISIT(ASTStatement, ASTArrayAssignStatement)
+MAKE_VISIT(ASTStatement, ASTAssignStatement)
+MAKE_VISIT(ASTStatement, ASTPrintlnStatement)
+MAKE_VISIT(ASTStatement, ASTWhileStatement)
+MAKE_VISIT(ASTStatement, ASTIfElseStatement)
+MAKE_VISIT(ASTStatement, ASTBlockStatement)
+
+// expression
+MAKE_VISIT(ASTNode, ASTExpression)
+MAKE_VISIT(ASTExpression, ASTIdentifier)
+MAKE_VISIT(ASTExpression, ASTBoolean)
+MAKE_VISIT(ASTExpression, ASTNumber)
+MAKE_VISIT(ASTExpression, ASTBinaryExpression)
+MAKE_VISIT(ASTExpression, ASTUnaryExpression)
+MAKE_VISIT(ASTExpression, ASTArrayLengthExpression)
+MAKE_VISIT(ASTExpression, ASTFunctionCallExpression)
+MAKE_VISIT(ASTExpression, ASTThisExpression)
+MAKE_VISIT(ASTExpression, ASTNewIntArrayExpression)
+MAKE_VISIT(ASTExpression, ASTNewExpression)
 
 
+/////////// Accept
+#define MAKE_ACCEPT(cls) \
+	void cls::Accept(ASTNodeVisitor &visitor, int level) \
+	{ \
+		visitor.Visit(this, level); \
+	}
 
-// Accept
-void ASTIdentifier::Accept(ASTNodeVisitor &visitor, int level)
-{
-	visitor.Visit(this, level);
-}
-void ASTNumber::Accept(ASTNodeVisitor &visitor, int level)
-{
-	visitor.Visit(this, level);
-}
-void ASTBoolean::Accept(ASTNodeVisitor &visitor, int level)
-{
-	visitor.Visit(this, level);
-}
-void ASTBinaryExpression::Accept(ASTNodeVisitor &visitor, int level)
-{
-	visitor.Visit(this, level);
-}
-void ASTUnaryExpression::Accept(ASTNodeVisitor &visitor, int level)
-{
-	visitor.Visit(this, level);
-}
-void ASTType::Accept(ASTNodeVisitor &visitor, int level)
-{
-	visitor.Visit(this, level);
-}
+MAKE_ACCEPT(ASTNode)
 
-void ASTClassDeclaration::Accept(ASTNodeVisitor &visitor, int level)
-{
-	visitor.Visit(this, level);
-}
-void ASTVarDeclaration::Accept(ASTNodeVisitor &visitor, int level)
-{
-	visitor.Visit(this, level);
-}
-void ASTMethodDeclaration::Accept(ASTNodeVisitor &visitor, int level)
-{
-	visitor.Visit(this, level);
-}
+MAKE_ACCEPT(ASTType)
+
+MAKE_ACCEPT(ASTClassDeclaration)
+MAKE_ACCEPT(ASTVarDeclaration)
+MAKE_ACCEPT(ASTMethodDeclaration)
+
+// statment
+MAKE_ACCEPT(ASTStatement)
+MAKE_ACCEPT(ASTArrayAssignStatement)
+MAKE_ACCEPT(ASTAssignStatement)
+MAKE_ACCEPT(ASTPrintlnStatement)
+MAKE_ACCEPT(ASTWhileStatement)
+MAKE_ACCEPT(ASTIfElseStatement)
+MAKE_ACCEPT(ASTBlockStatement)
+
+// expression
+MAKE_ACCEPT(ASTExpression)
+MAKE_ACCEPT(ASTIdentifier)
+MAKE_ACCEPT(ASTBoolean)
+MAKE_ACCEPT(ASTNumber)
+MAKE_ACCEPT(ASTBinaryExpression)
+MAKE_ACCEPT(ASTUnaryExpression)
+MAKE_ACCEPT(ASTArrayLengthExpression)
+MAKE_ACCEPT(ASTFunctionCallExpression)
+MAKE_ACCEPT(ASTThisExpression)
+MAKE_ACCEPT(ASTNewIntArrayExpression)
+MAKE_ACCEPT(ASTNewExpression)
