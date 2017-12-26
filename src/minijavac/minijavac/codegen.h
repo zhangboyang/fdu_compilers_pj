@@ -152,6 +152,7 @@ public:
 	std::vector<uint8_t> bytes;
 	std::vector<RelocInfo> reloc;
 	std::string comment;
+	data_off_t align = 1;
 
 	// runtime data
 	data_off_t off = 0;

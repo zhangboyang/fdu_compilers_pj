@@ -140,6 +140,7 @@ std::shared_ptr<DataItem> DataItem::AddU32(std::initializer_list<uint32_t> l)
 }
 std::shared_ptr<DataItem> DataItem::AddRel32(uint32_t val, RelocInfo::RelocType type, std::shared_ptr<DataItem> target)
 {
+	AddU32({val});
 	reloc.push_back(RelocInfo {
 		(data_off_t) bytes.size(),
 		type,
@@ -153,16 +154,47 @@ void DataBuffer::AppendItem(std::shared_ptr<DataItem> instr)
 {
 	list.push_back(instr);
 }
+std::shared_ptr<DataItem> DataBuffer::NewExternalSymbol(const std::string &name)
+{
+	std::shared_ptr<DataItem> marker = DataItem::New();
+	extsym.push_back(std::make_pair(name, marker));
+	return marker;
+}
+void DataBuffer::ProvideSymbol(const std::string &name)
+{
+	std::shared_ptr<DataItem> marker = DataItem::New();
+	auto it = list.insert(list.end(), marker);
+	sym.push_back(std::make_pair(name, it));
+}
 
 void DataBuffer::Dump()
 {
-	for (auto &item: list) {
+	for (auto lstit = list.begin(); lstit != list.end(); lstit++) {
+		auto &item = *lstit;
+		for (auto &p: sym) {
+			if (p.second == lstit) {
+				printf(" <%s>:\n", p.first.c_str());
+			}
+		}
+
+		if (item->bytes.empty()) continue;
+
 		std::string bytesdump;
 		for (auto &b: item->bytes) {
 			char buf[4]; sprintf(buf, "%02X ", (unsigned) b);
 			bytesdump += std::string(buf);
 		}
-		printf("  %08X: %-20s %s\n", item->off, bytesdump.c_str(), item->comment.c_str());
+		printf("  %08X: %-30s %s\n", item->off, bytesdump.c_str(), item->comment.c_str());
+
+		// print reloc info
+		for (auto &r: item->reloc) {
+			for (auto &p: extsym) { // FIXME: O(n^2)
+				if (r.target == p.second) {
+					printf("    reloc +%02X %s\n", r.off, p.first.c_str());
+				}
+			}
+		}
+		
 	}
 }
 
@@ -180,12 +212,14 @@ CodeGen *CodeGen::Instance()
 
 void CodeGen::Visit(ASTStatement *node, int level)
 {
+	code.AppendItem(DataItem::New()->AddU8({0xCC})->SetComment("ERROR: unhandled statement"));
 	printf("unhandled: %s\n", typeid(node).name());
 	MiniJavaC::Instance()->ReportError(node->loc, "internal error: unhandled statement");
 	VisitChildren(node, level);
 }
 void CodeGen::Visit(ASTExpression *node, int level)
 {
+	code.AppendItem(DataItem::New()->AddU8({0xCC})->SetComment("ERROR: unhandled statement"));
 	printf("unhandled: %s\n", typeid(node).name());
 	MiniJavaC::Instance()->ReportError(node->loc, "internal error: unhandled expression");
 	VisitChildren(node, level);
@@ -197,11 +231,15 @@ void CodeGen::GenerateCodeForASTNode(std::shared_ptr<ASTNode> node)
 }
 void CodeGen::GenerateCodeForMainMethod(std::shared_ptr<ASTMainClass> maincls)
 {
-	// FIXME
-	//GenerateCodeForASTNode(maincls->GetASTStatement());
+	code.ProvideSymbol("main");
+	GenerateCodeForASTNode(maincls->GetASTStatement());
+	code.AppendItem(DataItem::New()->AddU8({0x6A, 0x00})->SetComment("PUSH 0"));
+	code.AppendItem(DataItem::New()->AddU8({0xE8})->AddRel32(0x5, RelocInfo::RELOC_REL, code.NewExternalSymbol("$MSVCRT.exit"))->SetComment("CALL exit"));
 }
 void CodeGen::GenerateCodeForClassMethod(ClassInfoItem &cls, MethodDeclItem &method)
 {
+	code.ProvideSymbol(cls.GetName() + "." + method.GetName());
+
 	code.AppendItem(DataItem::New()->AddU8({0x55})->SetComment("PUSH EBP"));
 	code.AppendItem(DataItem::New()->AddU8({0x8B, 0xEC})->SetComment("MOV EBP,ESP"));
 	code.AppendItem(DataItem::New()->AddU8({0x81, 0xEC})->AddU32({(uint32_t) method.localvar.GetTotalSize()})->SetComment("SUB ESP,frame_size"));
