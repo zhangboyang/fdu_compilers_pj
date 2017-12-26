@@ -70,6 +70,18 @@ void ASTNode::Dump()
 	MiniJavaC::Instance()->DumpContent(loc);
 }
 
+void ASTNode::DumpTree()
+{
+	PrintVisitor v;
+	printf("DumpTree %p: %s\n", this, typeid(*this).name());
+	v.DumpTree(this, true);
+}
+
+void ASTNode::Accept(ASTNodeVisitor &visitor)
+{
+	Accept(visitor, 0);
+}
+
 std::shared_ptr<ASTNode> ASTNode::GetSharedPtr()
 {
 	return ASTNodePool::Instance()->GetSharedPtr(pool_handle);
@@ -137,6 +149,10 @@ ASTType::ASTType(const yyltype &loc, std::initializer_list<ASTNode *> l, VarType
 }
 const char *ASTType::GetTypeName()
 {
+	return GetTypeName(type);
+}
+const char *ASTType::GetTypeName(ASTType::VarType type)
+{
 	switch (type) {
 		case VT_INT:       return "INT";
 		case VT_INTARRAY:  return "INT_ARRAY";
@@ -145,7 +161,58 @@ const char *ASTType::GetTypeName()
 		default:           return "UNKNOWN";
 	}
 }
+std::shared_ptr<ASTIdentifier> ASTType::GetASTIdentifier()
+{
+	return std::dynamic_pointer_cast<ASTIdentifier>(ch[0]);
+}
+TypeInfo ASTType::GetTypeInfo()
+{
+	if (type != VT_CLASS) {
+		return TypeInfo { type };
+	} else {
+		return TypeInfo { type, GetASTIdentifier()->id };
+	}
+}
+data_off_t ASTType::GetTypeSize()
+{
+	switch (type) {
+		case VT_INT:       return 4;
+		case VT_INTARRAY:  return 8;
+		case VT_BOOLEAN:   return 4;
+		case VT_CLASS:     return 4;
+		default: panic();
+	}
+}
 
+
+std::shared_ptr<ASTIdentifier> ASTClassDeclaration::GetASTIdentifier()
+{
+	return std::dynamic_pointer_cast<ASTIdentifier>(ch[0]);
+}
+std::shared_ptr<ASTVarDeclarationList> ASTClassDeclaration::GetASTVarDeclarationList()
+{
+	return std::dynamic_pointer_cast<ASTVarDeclarationList>(ch[1]);
+}
+std::shared_ptr<ASTMethodDeclarationList> ASTClassDeclaration::GetASTMethodDeclarationList()
+{
+	return std::dynamic_pointer_cast<ASTMethodDeclarationList>(ch[2]);
+}
+
+std::shared_ptr<ASTType> ASTVarDeclaration::GetASTType()
+{
+	return std::dynamic_pointer_cast<ASTType>(ch[0]);
+}
+std::shared_ptr<ASTIdentifier> ASTVarDeclaration::GetASTIdentifier()
+{
+	return std::dynamic_pointer_cast<ASTIdentifier>(ch[1]);
+}
+
+VarDeclList ASTVarDeclarationList::GetVarDeclList()
+{
+	VarDeclListVisitor v;
+	ASTNode::Accept(v);
+	return std::move(v.var);
+}
 
 //////////////// default ASTNodeVisitor ////////////////
 
@@ -190,6 +257,11 @@ void ASTNodeVisitor::Visit(ASTClassDeclaration *node, int level)
 {
 	Visit(static_cast<ASTNode *>(node), level);
 }
+void ASTNodeVisitor::Visit(ASTVarDeclaration *node, int level)
+{
+	Visit(static_cast<ASTNode *>(node), level);
+}
+
 
 // Accept
 void ASTIdentifier::Accept(ASTNodeVisitor &visitor, int level)
@@ -218,6 +290,10 @@ void ASTType::Accept(ASTNodeVisitor &visitor, int level)
 }
 
 void ASTClassDeclaration::Accept(ASTNodeVisitor &visitor, int level)
+{
+	visitor.Visit(this, level);
+}
+void ASTVarDeclaration::Accept(ASTNodeVisitor &visitor, int level)
 {
 	visitor.Visit(this, level);
 }

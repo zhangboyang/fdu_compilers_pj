@@ -23,6 +23,9 @@
 #include <memory>
 #include <functional>
 
+typedef int data_off_t;
+#define panic() abort()
+
 #include "minijavac.h"
 #include "astnode.h"
 #include "codegen.h"

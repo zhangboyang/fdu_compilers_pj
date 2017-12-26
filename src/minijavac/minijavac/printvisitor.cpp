@@ -8,6 +8,13 @@ void PrintVisitor::DumpASTToTextFile(const char *txtfile, ASTNode *root, bool du
 	if (txtfile) fclose(fp);
 }
 
+void PrintVisitor::DumpTree(ASTNode *root, bool dumpcontent)
+{
+	fp = stdout;
+	this->dumpcontent = dumpcontent;
+	root->Accept(*this);
+}
+
 void PrintVisitor::Visit(ASTNode *node, int level, std::function<void()> func)
 {
 	for (int i = 0; i < (level + 1) * 2; i++) fprintf(fp, ">");

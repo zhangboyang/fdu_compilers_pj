@@ -35,7 +35,9 @@ public:
 	ASTNode(const yyltype &loc, std::initializer_list<ASTNode *> l);
 	virtual ~ASTNode();
 	void Dump();
-	virtual void Accept(ASTNodeVisitor &visitor, int level = 0);
+	void DumpTree();
+	virtual void Accept(ASTNodeVisitor &visitor, int level);
+	void Accept(ASTNodeVisitor &visitor);
 	std::shared_ptr<ASTNode> GetSharedPtr();
 	void AddChild(std::shared_ptr<ASTNode> ch_ptr);
 	void AddChild(ASTNode *ch_ptr);
@@ -55,18 +57,16 @@ class ASTExpression : public ASTNode {
 class ASTIdentifier : public ASTExpression {
 public:
 	std::string id;
-private:
-	virtual void Accept(ASTNodeVisitor &visitor, int level) override;
 public:
+	virtual void Accept(ASTNodeVisitor &visitor, int level) override;
 	ASTIdentifier(const yyltype &loc, const std::string &id);
 };
 
 class ASTNumber : public ASTExpression {
 public:
 	int val;
-private:
-	virtual void Accept(ASTNodeVisitor &visitor, int level) override;
 public:
+	virtual void Accept(ASTNodeVisitor &visitor, int level) override;
 	ASTNumber(const yyltype &loc, int val);
 };
 
@@ -154,6 +154,9 @@ class ASTBlockStatement : public ASTStatement {
 
 
 // ASTType
+
+class TypeInfo;
+
 class ASTType : public ASTNode {
 public:
 	enum VarType {
@@ -167,6 +170,10 @@ public:
 	ASTType(const yyltype &loc, std::initializer_list<ASTNode *> l, VarType type);
 	virtual void Accept(ASTNodeVisitor &visitor, int level) override;
 	const char *GetTypeName();
+	static const char *GetTypeName(VarType type);
+	TypeInfo GetTypeInfo();
+	std::shared_ptr<ASTIdentifier> GetASTIdentifier();
+	data_off_t GetTypeSize();
 };
 
 
@@ -192,18 +199,30 @@ class ASTMethodDeclarationList : public ASTNode {
 
 
 // ASTVarDeclaration
+class VarDeclList;
 class ASTVarDeclaration : public ASTNode {
 	using ASTNode::ASTNode;
+public:
+	virtual void Accept(ASTNodeVisitor &visitor, int level) override;
+	std::shared_ptr<ASTType> GetASTType();
+	std::shared_ptr<ASTIdentifier> GetASTIdentifier();
 };
+
 class ASTVarDeclarationList : public ASTNode {
 	using ASTNode::ASTNode;
+public:
+	VarDeclList GetVarDeclList();
 };
 
 
 // ASTClassDeclaration
 class ASTClassDeclaration : public ASTNode {
 	using ASTNode::ASTNode;
+public:
 	virtual void Accept(ASTNodeVisitor &visitor, int level) override;
+	std::shared_ptr<ASTIdentifier> GetASTIdentifier();
+	std::shared_ptr<ASTVarDeclarationList> GetASTVarDeclarationList();
+	std::shared_ptr<ASTMethodDeclarationList> GetASTMethodDeclarationList();
 };
 class ASTClassDeclarationList : public ASTNode {
 	using ASTNode::ASTNode;
@@ -236,6 +255,7 @@ public:
 	virtual void Visit(ASTType *node, int level);
 
 	virtual void Visit(ASTClassDeclaration *node, int level);
+	virtual void Visit(ASTVarDeclaration *node, int level);
 };
 
 
@@ -253,8 +273,8 @@ class PrintVisitor : public ASTNodeVisitor {
 	void Visit(ASTNode *node, int level, std::function<void()> func);
 
 public:
-
 	void DumpASTToTextFile(const char *txtfile, ASTNode *root, bool dumpcontent);
+	void DumpTree(ASTNode *root, bool dumpcontent);
 };
 
 class JSONVisitor : public ASTNodeVisitor {

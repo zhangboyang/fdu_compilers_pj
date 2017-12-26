@@ -1,7 +1,7 @@
 #pragma once
 
 ////////// Instruction / Data Class //////////
-typedef int data_off_t;
+
 
 class DataItem;
 
@@ -68,28 +68,45 @@ public:
 	std::vector<VarDecl> arg;
 };
 
-class VarListItem {
+class VarDeclListItem {
 public:
 	VarDecl decl;
 	data_off_t off;
 	data_off_t size;
 };
 
-class MethodListItem {
+class MethodDeclListItem {
 public:
 	MethodDecl decl;
 	data_off_t off;
 };
 
+class VarDeclList : public std::vector<VarDeclListItem> {
+public:
+	void Dump();
+	data_off_t GetTotalSize();
+};
+
+class MethodDeclList : public std::vector<MethodDeclListItem> {
+public:
+
+};
+
 class ClassInfo {
 public:
 	std::string name;
-	std::vector<VarListItem> var;
-	std::vector<MethodListItem> method;
+	VarDeclList var;
+	MethodDeclList method;
 };
 
 
 // Visitor
+
+class VarDeclListVisitor : public ASTNodeVisitor {
+public:
+	VarDeclList var;
+	virtual void Visit(ASTVarDeclaration *node, int level) override;
+};
 
 class ClassInfoVisitor : public ASTNodeVisitor {
 public:
