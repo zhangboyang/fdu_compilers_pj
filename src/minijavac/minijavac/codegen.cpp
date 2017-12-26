@@ -49,7 +49,10 @@ void MethodDeclList::Dump()
 {
 	for (auto &item: *this) {
 		printf("  method: %08X %-10s %s():\n", (unsigned) item.off, ASTType::GetTypeName(item.decl.rettype.type), item.decl.name.c_str());
+		printf("  >arg\n");
 		item.decl.arg.Dump();
+		printf("  >local\n");
+		item.localvar.Dump();
 	}
 }
 
@@ -62,6 +65,7 @@ void MethodDeclListVisitor::Visit(ASTMethodDeclaration *node, int level)
 			node->GetASTArgDeclarationList1()->GetVarDeclList(),
 		},
 		list.GetTotalSize(),
+		node->GetASTVarDeclarationList()->GetVarDeclList(),
 		std::dynamic_pointer_cast<ASTMethodDeclaration>(node->GetSharedPtr()),
 	})) {
 		MiniJavaC::Instance()->ReportError(node->GetASTIdentifier()->loc, "duplicate method");
@@ -75,7 +79,7 @@ const std::string &ClassInfoItem::GetName() const
 void ClassInfoItem::Dump()
 {
 	printf("class %s:\n", name.c_str());
-	printf(" var:\n");
+	printf(" member-var:\n");
 	var.Dump();
 	printf(" method:\n");
 	method.Dump();

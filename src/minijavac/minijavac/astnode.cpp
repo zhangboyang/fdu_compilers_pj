@@ -226,6 +226,10 @@ std::shared_ptr<ASTArgDeclarationList1> ASTMethodDeclaration::GetASTArgDeclarati
 {
 	return std::dynamic_pointer_cast<ASTArgDeclarationList1>(ch[2]);
 }
+std::shared_ptr<ASTVarDeclarationList> ASTMethodDeclaration::GetASTVarDeclarationList()
+{
+	return std::dynamic_pointer_cast<ASTVarDeclarationList>(ch[3]);
+}
 MethodDeclList ASTMethodDeclarationList::GetMethodDeclList()
 {
 	MethodDeclListVisitor v;

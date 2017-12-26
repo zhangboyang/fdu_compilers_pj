@@ -118,6 +118,7 @@ class MethodDeclItem {
 public:
 	MethodDecl decl;
 	data_off_t off;
+	VarDeclList localvar;
 	std::shared_ptr<ASTMethodDeclaration> ptr;
 public:
 	const std::string &GetName() const;

@@ -192,6 +192,7 @@ class ASTArgDeclarationList2 : public ASTNode {
 
 // ASTMethodDeclaration
 class MethodDeclList;
+class ASTVarDeclarationList;
 class ASTMethodDeclaration : public ASTNode {
 	using ASTNode::ASTNode;
 public:
@@ -199,6 +200,7 @@ public:
 	std::shared_ptr<ASTType> GetASTType();
 	std::shared_ptr<ASTIdentifier> GetASTIdentifier();
 	std::shared_ptr<ASTArgDeclarationList1> GetASTArgDeclarationList1();
+	std::shared_ptr<ASTVarDeclarationList> GetASTVarDeclarationList();
 };
 class ASTMethodDeclarationList : public ASTNode {
 	using ASTNode::ASTNode;
