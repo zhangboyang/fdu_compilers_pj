@@ -1,50 +1,5 @@
 #pragma once
 
-////////// Instruction / Data Class //////////
-
-
-class DataItem;
-
-class RelocInfo {
-public:
-	enum RelocType {
-		RELOC_ABS,
-		RELOC_REL,
-	};
-	RelocType type;
-	std::shared_ptr<DataItem> target;
-};
-
-class DataItem {
-public:
-	std::vector<uint8_t> bytes;
-	data_off_t off = 0;
-	std::vector<RelocInfo> reloc;
-};
-
-class Instr: public DataItem { // instruction
-	using DataItem::DataItem;
-};
-
-class MarkerItem : public DataItem { // position marker
-	using DataItem::DataItem;
-};
-
-class X86Instr : public Instr {
-	using Instr::Instr;
-};
-
-class X86LinkInstr : public X86Instr {
-};
-
-class DataBuffer {
-private:
-	std::list<std::shared_ptr<DataItem> > list;
-public:
-	void AppendItem(std::shared_ptr<DataItem> instr);
-	std::shared_ptr<MarkerItem> AppendMarker();
-};
-
 
 
 
@@ -171,11 +126,65 @@ public:
 
 
 
+////////// Instruction / Data Class //////////
+
+
+class DataItem;
+
+class RelocInfo {
+public:
+	enum RelocType {
+		RELOC_ABS,
+		RELOC_REL,
+	};
+	data_off_t off;
+	RelocType type;
+	std::shared_ptr<DataItem> target;
+};
+
+class DataBuffer;
+
+class DataItem : public std::enable_shared_from_this<DataItem> {
+	friend DataBuffer;
+private:
+	DataItem();
+public:
+	std::vector<uint8_t> bytes;
+	std::vector<RelocInfo> reloc;
+	std::string comment;
+
+	// runtime data
+	data_off_t off = 0;
+public:
+	static std::shared_ptr<DataItem> New();
+	std::shared_ptr<DataItem> SetComment(const std::string &comment);
+	std::shared_ptr<DataItem> AddU8(std::initializer_list<uint8_t> l);
+	std::shared_ptr<DataItem> AddU32(std::initializer_list<uint32_t> l);
+	std::shared_ptr<DataItem> AddRel32(uint32_t val, RelocInfo::RelocType type, std::shared_ptr<DataItem> target);
+};
+
+class DataBuffer {
+private:
+	std::list<std::shared_ptr<DataItem> > list;
+	std::vector<std::pair<std::string, std::shared_ptr<DataItem> > > extsym; // external reference (name, marker_to_insert)
+	std::vector<std::pair<std::string, std::list<std::shared_ptr<DataItem> >::iterator > > sym; // symbols provided by current buffer (name, insert_position)
+	
+public:
+	void AppendItem(std::shared_ptr<DataItem> item);
+	std::shared_ptr<DataItem> NewExternalSymbol(const std::string &name);
+	void ProvideSymbol(const std::string &name);
+	void Dump();
+};
+
+
+
+////////// CodeGen //////////
 
 
 class CodeGen : public ASTNodeVisitor {
 	ClassInfoList clsinfo;
-
+public:
+	DataBuffer code, rodata, data;
 private:
 	CodeGen();
 	void GenerateCodeForASTNode(std::shared_ptr<ASTNode> node);
@@ -186,6 +195,5 @@ public:
 	virtual void Visit(ASTExpression *node, int level) override;
 public:
 	static CodeGen *Instance();
-
 	void GenerateCode();
 };

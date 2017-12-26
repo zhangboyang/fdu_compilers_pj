@@ -7,11 +7,14 @@ const std::string &VarDeclItem::GetName() const
 
 data_off_t VarDeclList::GetTotalSize()
 {
+	data_off_t ret;
 	if (this->empty()) {
-		return 0;
+		ret = 0;
 	} else {
-		return this->back().off + this->back().size;
+		ret = this->back().off + this->back().size;
 	}
+	assert(ret % 4 == 0);
+	return ret;
 }
 void VarDeclList::Dump()
 {
@@ -103,6 +106,66 @@ void ClassInfoVisitor::Visit(ASTClassDeclaration *node, int level)
 	}
 }
 
+// DataItem / DataBuffer
+DataItem::DataItem()
+{
+}
+std::shared_ptr<DataItem> DataItem::New()
+{
+	return std::shared_ptr<DataItem>(new DataItem());
+}
+std::shared_ptr<DataItem> DataItem::SetComment(const std::string &comment)
+{
+	this->comment = comment;
+	return shared_from_this();
+}
+std::shared_ptr<DataItem> DataItem::AddU8(std::initializer_list<uint8_t> l)
+{
+	for (auto &v: l) {
+		bytes.push_back(v);
+	}
+	return shared_from_this();
+}
+std::shared_ptr<DataItem> DataItem::AddU32(std::initializer_list<uint32_t> l)
+{
+	for (auto &v: l) {
+		AddU8({
+			(uint8_t)(v & 0xFF),
+			(uint8_t)((v >> 8) & 0xFF),
+			(uint8_t)((v >> 16) & 0xFF),
+			(uint8_t)((v >> 24) & 0xFF),
+		});
+	}
+	return shared_from_this();
+}
+std::shared_ptr<DataItem> DataItem::AddRel32(uint32_t val, RelocInfo::RelocType type, std::shared_ptr<DataItem> target)
+{
+	reloc.push_back(RelocInfo {
+		(data_off_t) bytes.size(),
+		type,
+		target,
+	});
+	return shared_from_this();
+}
+
+
+void DataBuffer::AppendItem(std::shared_ptr<DataItem> instr)
+{
+	list.push_back(instr);
+}
+
+void DataBuffer::Dump()
+{
+	for (auto &item: list) {
+		std::string bytesdump;
+		for (auto &b: item->bytes) {
+			char buf[4]; sprintf(buf, "%02X ", (unsigned) b);
+			bytesdump += std::string(buf);
+		}
+		printf("  %08X: %-20s %s\n", item->off, bytesdump.c_str(), item->comment.c_str());
+	}
+}
+
 
 // Code Generator
 
@@ -118,12 +181,14 @@ CodeGen *CodeGen::Instance()
 void CodeGen::Visit(ASTStatement *node, int level)
 {
 	printf("unhandled: %s\n", typeid(node).name());
-	MiniJavaC::Instance()->ReportError(node->loc, "unhandled statement");
+	MiniJavaC::Instance()->ReportError(node->loc, "internal error: unhandled statement");
+	VisitChildren(node, level);
 }
 void CodeGen::Visit(ASTExpression *node, int level)
 {
 	printf("unhandled: %s\n", typeid(node).name());
-	MiniJavaC::Instance()->ReportError(node->loc, "unhandled expression");
+	MiniJavaC::Instance()->ReportError(node->loc, "internal error: unhandled expression");
+	VisitChildren(node, level);
 }
 
 void CodeGen::GenerateCodeForASTNode(std::shared_ptr<ASTNode> node)
@@ -133,12 +198,20 @@ void CodeGen::GenerateCodeForASTNode(std::shared_ptr<ASTNode> node)
 void CodeGen::GenerateCodeForMainMethod(std::shared_ptr<ASTMainClass> maincls)
 {
 	// FIXME
-	GenerateCodeForASTNode(maincls->GetASTStatement());
+	//GenerateCodeForASTNode(maincls->GetASTStatement());
 }
 void CodeGen::GenerateCodeForClassMethod(ClassInfoItem &cls, MethodDeclItem &method)
 {
-	// FIXME
+	code.AppendItem(DataItem::New()->AddU8({0x55})->SetComment("PUSH EBP"));
+	code.AppendItem(DataItem::New()->AddU8({0x8B, 0xEC})->SetComment("MOV EBP,ESP"));
+	code.AppendItem(DataItem::New()->AddU8({0x81, 0xEC})->AddU32({(uint32_t) method.localvar.GetTotalSize()})->SetComment("SUB ESP,frame_size"));
+
 	GenerateCodeForASTNode(method.ptr->GetASTStatementList());
+
+	// FIXME: return value
+	
+	code.AppendItem(DataItem::New()->AddU8({0xC9})->SetComment("LEAVE"));
+	code.AppendItem(DataItem::New()->AddU8({0xC3})->SetComment("RETN"));
 }
 void CodeGen::GenerateCode()
 {
@@ -155,4 +228,6 @@ void CodeGen::GenerateCode()
 			GenerateCodeForClassMethod(cls, method);
 		}
 	}
+
+	code.Dump();
 }
