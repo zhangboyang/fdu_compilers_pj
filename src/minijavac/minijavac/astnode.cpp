@@ -64,6 +64,12 @@ ASTNode::~ASTNode()
 {
 }
 
+void ASTNode::Dump()
+{
+	printf("Dump %p: %s\n", this, typeid(*this).name());
+	MiniJavaC::Instance()->DumpContent(loc);
+}
+
 std::shared_ptr<ASTNode> ASTNode::GetSharedPtr()
 {
 	return ASTNodePool::Instance()->GetSharedPtr(pool_handle);
@@ -154,6 +160,7 @@ void ASTNodeVisitor::VisitChildren(ASTNode *node, int level)
 // Visit
 void ASTNodeVisitor::Visit(ASTNode *node, int level)
 {
+	VisitChildren(node, level);
 }
 void ASTNodeVisitor::Visit(ASTIdentifier *node, int level)
 {
@@ -176,6 +183,10 @@ void ASTNodeVisitor::Visit(ASTUnaryExpression *node, int level)
 	Visit(static_cast<ASTNode *>(node), level);
 }
 void ASTNodeVisitor::Visit(ASTType *node, int level)
+{
+	Visit(static_cast<ASTNode *>(node), level);
+}
+void ASTNodeVisitor::Visit(ASTClassDeclaration *node, int level)
 {
 	Visit(static_cast<ASTNode *>(node), level);
 }
@@ -202,6 +213,11 @@ void ASTUnaryExpression::Accept(ASTNodeVisitor &visitor, int level)
 	visitor.Visit(this, level);
 }
 void ASTType::Accept(ASTNodeVisitor &visitor, int level)
+{
+	visitor.Visit(this, level);
+}
+
+void ASTClassDeclaration::Accept(ASTNodeVisitor &visitor, int level)
 {
 	visitor.Visit(this, level);
 }

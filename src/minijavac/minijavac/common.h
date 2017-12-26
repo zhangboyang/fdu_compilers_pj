@@ -25,3 +25,4 @@
 
 #include "minijavac.h"
 #include "astnode.h"
+#include "codegen.h"

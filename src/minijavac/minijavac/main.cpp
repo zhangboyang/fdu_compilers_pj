@@ -11,8 +11,8 @@ int main()
 
 	//MiniJavaC::Instance()->OpenFile("../../../tests/BinarySearch.java");
 	//MiniJavaC::Instance()->OpenFile("../../../tests/BinaryTree.java");
-	//MiniJavaC::Instance()->OpenFile("../../../tests/BubbleSort.java");
-	MiniJavaC::Instance()->OpenFile("../../../tests/Factorial.java");
+	MiniJavaC::Instance()->OpenFile("../../../tests/BubbleSort.java");
+	//MiniJavaC::Instance()->OpenFile("../../../tests/Factorial.java");
 	//MiniJavaC::Instance()->OpenFile("../../../tests/LinearSearch.java");
 	//MiniJavaC::Instance()->OpenFile("../../../tests/LinkedList.java");
 	//MiniJavaC::Instance()->OpenFile("../../../tests/QuickSort.java");
@@ -25,7 +25,10 @@ int main()
 	MiniJavaC::Instance()->DumpASTToTextFile("out.txt", true);
 	
 	MiniJavaC::Instance()->DumpASTToJSON("out.json");
-	
+
+	ClassInfoVisitor v;
+	MiniJavaC::Instance()->goal->Accept(v);
+
 	system("pause");
 	return 0;
 }

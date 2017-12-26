@@ -211,6 +211,7 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="astnode.cpp" />
+    <ClCompile Include="codegen.cpp" />
     <ClCompile Include="common.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Create</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">Create</PrecompiledHeader>
@@ -236,6 +237,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="astnode.h" />
+    <ClInclude Include="codegen.h" />
     <ClInclude Include="common.h" />
     <ClInclude Include="minijavac.h" />
     <ClInclude Include="minijavac.tab.h" />

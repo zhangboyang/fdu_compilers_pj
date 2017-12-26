@@ -34,6 +34,7 @@ public:
 	ASTNode(const yyltype &loc);
 	ASTNode(const yyltype &loc, std::initializer_list<ASTNode *> l);
 	virtual ~ASTNode();
+	void Dump();
 	virtual void Accept(ASTNodeVisitor &visitor, int level = 0);
 	std::shared_ptr<ASTNode> GetSharedPtr();
 	void AddChild(std::shared_ptr<ASTNode> ch_ptr);
@@ -202,6 +203,7 @@ class ASTVarDeclarationList : public ASTNode {
 // ASTClassDeclaration
 class ASTClassDeclaration : public ASTNode {
 	using ASTNode::ASTNode;
+	virtual void Accept(ASTNodeVisitor &visitor, int level) override;
 };
 class ASTClassDeclarationList : public ASTNode {
 	using ASTNode::ASTNode;
@@ -232,6 +234,8 @@ public:
 	virtual void Visit(ASTBinaryExpression *node, int level);
 	virtual void Visit(ASTUnaryExpression *node, int level);
 	virtual void Visit(ASTType *node, int level);
+
+	virtual void Visit(ASTClassDeclaration *node, int level);
 };
 
 

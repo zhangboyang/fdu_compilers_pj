@@ -42,6 +42,9 @@
     <ClCompile Include="jsonvisitor.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
+    <ClCompile Include="codegen.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="common.h">
@@ -54,6 +57,9 @@
       <Filter>头文件</Filter>
     </ClInclude>
     <ClInclude Include="astnode.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="codegen.h">
       <Filter>头文件</Filter>
     </ClInclude>
   </ItemGroup>
