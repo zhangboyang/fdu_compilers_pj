@@ -74,6 +74,13 @@ void MethodDeclListVisitor::Visit(ASTMethodDeclaration *node, int level)
 	})) {
 		MiniJavaC::Instance()->ReportError(node->GetASTIdentifier()->loc, "duplicate method");
 	}
+
+	for (auto &v: list.back().decl.arg) {
+		if (list.back().localvar.Find(v.GetName()) != list.back().localvar.end()) {
+			MiniJavaC::Instance()->ReportError(node->GetASTIdentifier()->loc, (v.GetName() + " exists in both local-var and method-arg").c_str());
+			break;
+		}
+	}
 }
 
 const std::string &ClassInfoItem::GetName() const
@@ -308,7 +315,28 @@ void CodeGen::Visit(ASTPrintlnStatement *node, int level)
 //virtual void Visit(ASTBlockStatement *node, int level);
 
 // expression
-//virtual void Visit(ASTIdentifier *node, int level);
+void CodeGen::Visit(ASTIdentifier *node, int level)
+{
+	auto v = GetLocalVar(node->id);
+	if (v.second.type != ASTType::VT_UNKNOWN) {
+		assert(v.first.second % 4 == 0);
+		for (data_off_t i = v.first.second - 4; i >= 0; i -= 4) {
+			// push [ebp+(off+i)]
+			code.AppendItem(DataItem::New()->AddU8({0xFF, 0xB5})->AddU32({(uint32_t)(v.first.first + i)})->SetComment("load local-var " + node->id));
+		}
+	} else {
+		v = GetMemberVar(node->id);
+		if (v.second.type != ASTType::VT_UNKNOWN) {
+			LoadThisToEAX();
+			assert(v.first.second % 4 == 0);
+			for (data_off_t i = v.first.second - 4; i >= 0; i -= 4) {
+				// push [eax+(off+i)]
+				code.AppendItem(DataItem::New()->AddU8({0xFF, 0xB0})->AddU32({(uint32_t)(v.first.first + i)})->SetComment("load member-var " + node->id));
+			}
+		}
+	}
+	PushType(v.second);
+}
 void CodeGen::Visit(ASTBoolean *node, int level)
 {
 	PushType(TypeInfo { ASTType::VT_BOOLEAN });
@@ -424,7 +452,36 @@ void CodeGen::Visit(ASTNewIntArrayExpression *node, int level)
 //virtual void Visit(ASTNewExpression *node, int level);
 
 
+void CodeGen::LoadThisToEAX()
+{
+	code.AppendItem(DataItem::New()->AddU8({0x8B, 0x45, 0x08})->SetComment("MOV EAX,[EBP+8]"));
+}
 
+std::pair<std::pair<data_off_t, data_off_t>, TypeInfo> CodeGen::GetLocalVar(const std::string &name)
+{	
+	if (cur_cls && cur_method) {
+		auto lvar = cur_method->localvar.Find(name);
+		if (lvar != cur_method->localvar.end()) {
+			return std::make_pair(std::make_pair(-cur_method->localvar.GetTotalSize() + lvar->off, lvar->size), lvar->decl.type);
+		}
+
+		auto avar = cur_method->decl.arg.Find(name);
+		if (avar != cur_method->decl.arg.end()) {
+			return std::make_pair(std::make_pair(0xC + avar->off, avar->size), avar->decl.type);
+		}
+	}
+	return std::make_pair(std::make_pair(0, 0), TypeInfo {ASTType::VT_UNKNOWN});
+}
+std::pair<std::pair<data_off_t, data_off_t>, TypeInfo> CodeGen::GetMemberVar(const std::string &name)
+{
+	if (cur_cls && cur_method) {
+		auto mvar = cur_cls->var.Find(name);
+		if (mvar != cur_cls->var.end()) {
+			return std::make_pair(std::make_pair(0x4 + mvar->off, mvar->size), mvar->decl.type);
+		}
+	}
+	return std::make_pair(std::make_pair(0, 0), TypeInfo {ASTType::VT_UNKNOWN});
+}
 
 void CodeGen::GenerateCodeForASTNode(std::shared_ptr<ASTNode> node)
 {
@@ -432,6 +489,8 @@ void CodeGen::GenerateCodeForASTNode(std::shared_ptr<ASTNode> node)
 }
 void CodeGen::GenerateCodeForMainMethod(std::shared_ptr<ASTMainClass> maincls)
 {
+	cur_cls = nullptr;
+	cur_method = nullptr;
 	code.ProvideSymbol("main");
 	GenerateCodeForASTNode(maincls->GetASTStatement());
 	code.AppendItem(DataItem::New()->AddU8({0x6A, 0x00})->SetComment("PUSH 0"));
@@ -439,6 +498,9 @@ void CodeGen::GenerateCodeForMainMethod(std::shared_ptr<ASTMainClass> maincls)
 }
 void CodeGen::GenerateCodeForClassMethod(ClassInfoItem &cls, MethodDeclItem &method)
 {
+	cur_cls = &cls;
+	cur_method = &method;
+	
 	code.ProvideSymbol(cls.GetName() + "." + method.GetName());
 
 	code.AppendItem(DataItem::New()->AddU8({0x55})->SetComment("PUSH EBP"));

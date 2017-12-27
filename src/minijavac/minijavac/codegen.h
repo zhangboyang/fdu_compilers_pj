@@ -23,9 +23,9 @@ public:
 	{
 		auto it = listindex.find(name);
 		if (it == listindex.end()) {
-			return end();
+			return std::vector<T>::end();
 		} else {
-			return begin() + it->second;
+			return std::vector<T>::begin() + it->second;
 		}
 	}
 };
@@ -190,12 +190,26 @@ public:
 class CodeGen : public ASTNodeVisitor {
 	ClassInfoList clsinfo;
 public:
+	ClassInfoItem *cur_cls;
+	MethodDeclItem *cur_method;
 	DataBuffer code, rodata, data;
 private:
 	std::vector<TypeInfo> varstack;
 	void PopAndCheckType(std::shared_ptr<ASTNode> node, TypeInfo tinfo);
 	void PopAndCheckType(ASTNode *node, TypeInfo tinfo);
 	void PushType(TypeInfo tinfo);
+
+	void LoadThisToEAX();
+
+	// get local-var info (arg and stack var)
+	// return < <bp-offset, size>, type>
+	// return < <0,0>, VT_UNKNOWN > if not found
+	std::pair<std::pair<data_off_t, data_off_t>, TypeInfo> GetLocalVar(const std::string &name);
+
+	// get member-var info
+	// return < <this-offset, size>, type>
+	// return < <0,0>, VT_UNKNOWN > if not found
+	std::pair<std::pair<data_off_t, data_off_t>, TypeInfo> GetMemberVar(const std::string &name);
 
 	CodeGen();
 	void GenerateCodeForASTNode(std::shared_ptr<ASTNode> node);
@@ -214,7 +228,7 @@ public:
 	//virtual void Visit(ASTBlockStatement *node, int level);
 
 	// expression
-	//virtual void Visit(ASTIdentifier *node, int level);
+	virtual void Visit(ASTIdentifier *node, int level);
 	virtual void Visit(ASTBoolean *node, int level);
 	virtual void Visit(ASTNumber *node, int level);
 	virtual void Visit(ASTBinaryExpression *node, int level);
