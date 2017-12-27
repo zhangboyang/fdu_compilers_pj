@@ -309,7 +309,11 @@ void CodeGen::Visit(ASTPrintlnStatement *node, int level)
 
 // expression
 //virtual void Visit(ASTIdentifier *node, int level);
-//virtual void Visit(ASTBoolean *node, int level);
+void CodeGen::Visit(ASTBoolean *node, int level)
+{
+	PushType(TypeInfo { ASTType::VT_BOOLEAN });
+	code.AppendItem(DataItem::New()->AddU8({0x6A})->AddU8({(uint8_t)node->val})->SetComment("PUSH ast_boolean"));
+}
 void CodeGen::Visit(ASTNumber *node, int level)
 {
 	PushType(TypeInfo { ASTType::VT_INT });
@@ -380,11 +384,43 @@ void CodeGen::Visit(ASTBinaryExpression *node, int level)
 
 	PushType(restype);
 }
-//virtual void Visit(ASTUnaryExpression *node, int level);
-//virtual void Visit(ASTArrayLengthExpression *node, int level);
+void CodeGen::Visit(ASTUnaryExpression *node, int level)
+{
+	GenerateCodeForASTNode(node->GetASTExpression());
+	switch (node->op) {
+		case TOK_NOT:
+			PopAndCheckType(node->GetASTExpression(), TypeInfo { ASTType::VT_BOOLEAN });
+			code.AppendItem(DataItem::New()->AddU8({0x83, 0x34, 0xE4, 0x01})->SetComment("XOR [ESP],1"));
+			PushType(TypeInfo { ASTType::VT_BOOLEAN });
+			break;
+		case TOK_LP:
+			// nothing to do
+			break;
+		default: panic();
+	};
+}
+
+void CodeGen::Visit(ASTArrayLengthExpression *node, int level)
+{
+	GenerateCodeForASTNode(node->GetASTExpression());
+	PopAndCheckType(node->GetASTExpression(), TypeInfo { ASTType::VT_INTARRAY });
+	code.AppendItem(DataItem::New()->AddU8({0x58})->SetComment("POP EAX"));
+	PushType(TypeInfo { ASTType::VT_INT });
+}
+
 //virtual void Visit(ASTFunctionCallExpression *node, int level);
 //virtual void Visit(ASTThisExpression *node, int level);
-//virtual void Visit(ASTNewIntArrayExpression *node, int level);
+void CodeGen::Visit(ASTNewIntArrayExpression *node, int level)
+{
+	GenerateCodeForASTNode(node->GetASTExpression());
+	PopAndCheckType(node->GetASTExpression(), TypeInfo { ASTType::VT_INT });
+	code.AppendItem(DataItem::New()->AddU8({0x6A, 0x04})->SetComment("PUSH 4"));
+	code.AppendItem(DataItem::New()->AddU8({0xFF, 0x74, 0xE4, 0x04})->SetComment("PUSH [ESP+4]"));
+	code.AppendItem(DataItem::New()->AddU8({0xE8})->AddRel32(0x5, RelocInfo::RELOC_REL, code.NewExternalSymbol("$MSVCRT.calloc"))->SetComment("CALL calloc"));
+	code.AppendItem(DataItem::New()->AddU8({0x83, 0xC4, 0x08})->SetComment("ADD ESP,8"));
+	code.AppendItem(DataItem::New()->AddU8({0x50})->SetComment("PUSH EAX"));
+	PushType(TypeInfo { ASTType::VT_INTARRAY });
+}
 //virtual void Visit(ASTNewExpression *node, int level);
 
 

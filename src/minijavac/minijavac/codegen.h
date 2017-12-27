@@ -215,14 +215,14 @@ public:
 
 	// expression
 	//virtual void Visit(ASTIdentifier *node, int level);
-	//virtual void Visit(ASTBoolean *node, int level);
+	virtual void Visit(ASTBoolean *node, int level);
 	virtual void Visit(ASTNumber *node, int level);
 	virtual void Visit(ASTBinaryExpression *node, int level);
-	//virtual void Visit(ASTUnaryExpression *node, int level);
-	//virtual void Visit(ASTArrayLengthExpression *node, int level);
+	virtual void Visit(ASTUnaryExpression *node, int level);
+	virtual void Visit(ASTArrayLengthExpression *node, int level);
 	//virtual void Visit(ASTFunctionCallExpression *node, int level);
 	//virtual void Visit(ASTThisExpression *node, int level);
-	//virtual void Visit(ASTNewIntArrayExpression *node, int level);
+	virtual void Visit(ASTNewIntArrayExpression *node, int level);
 	//virtual void Visit(ASTNewExpression *node, int level);
 public:
 	static CodeGen *Instance();

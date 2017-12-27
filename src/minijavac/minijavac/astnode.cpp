@@ -169,6 +169,18 @@ std::shared_ptr<ASTExpression> ASTPrintlnStatement::GetASTExpression()
 {
 	return std::dynamic_pointer_cast<ASTExpression>(ch[0]);
 }
+std::shared_ptr<ASTExpression> ASTUnaryExpression::GetASTExpression()
+{
+	return std::dynamic_pointer_cast<ASTExpression>(ch[0]);
+}
+std::shared_ptr<ASTExpression> ASTArrayLengthExpression::GetASTExpression()
+{
+	return std::dynamic_pointer_cast<ASTExpression>(ch[0]);
+}
+std::shared_ptr<ASTExpression> ASTNewIntArrayExpression::GetASTExpression()
+{
+	return std::dynamic_pointer_cast<ASTExpression>(ch[0]);
+}
 
 ////// Statement
 

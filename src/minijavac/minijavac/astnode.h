@@ -100,12 +100,14 @@ public:
 	ASTUnaryExpression(const yyltype &loc, std::initializer_list<ASTNode *> l, int op);
 	virtual void Accept(ASTNodeVisitor &visitor, int level) override;
 	const char *GetOperatorName();
+	std::shared_ptr<ASTExpression> GetASTExpression();
 };
 
 class ASTArrayLengthExpression : public ASTExpression {
 	using ASTExpression::ASTExpression;
 public:
 	virtual void Accept(ASTNodeVisitor &visitor, int level) override;
+	std::shared_ptr<ASTExpression> GetASTExpression();
 };
 class ASTFunctionCallExpression : public ASTExpression {
 	using ASTExpression::ASTExpression;
@@ -121,6 +123,7 @@ class ASTNewIntArrayExpression : public ASTExpression {
 	using ASTExpression::ASTExpression;
 public:
 	virtual void Accept(ASTNodeVisitor &visitor, int level) override;
+	std::shared_ptr<ASTExpression> GetASTExpression();
 };
 class ASTNewExpression : public ASTExpression {
 	using ASTExpression::ASTExpression;
