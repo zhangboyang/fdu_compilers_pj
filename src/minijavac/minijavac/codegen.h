@@ -189,13 +189,15 @@ public:
 
 
 class CodeGen : public ASTNodeVisitor {
-	ClassInfoList clsinfo;
 public:
 	ClassInfoItem *cur_cls;
 	MethodDeclItem *cur_method;
 	DataBuffer code, rodata, data;
 private:
 	std::vector<TypeInfo> varstack;
+	ClassInfoList clsinfo;
+private:
+	void AssertTypeEmpty(const yyltype &loc);
 	TypeInfo PopType();
 	void PopAndCheckType(const yyltype &loc, TypeInfo tinfo);
 	void PushType(TypeInfo tinfo);
@@ -221,12 +223,12 @@ public:
 	virtual void Visit(ASTExpression *node, int level) override;
 
 	// statment
-	//virtual void Visit(ASTArrayAssignStatement *node, int level);
-	//virtual void Visit(ASTAssignStatement *node, int level);
+	virtual void Visit(ASTArrayAssignStatement *node, int level);
+	virtual void Visit(ASTAssignStatement *node, int level);
 	virtual void Visit(ASTPrintlnStatement *node, int level);
-	//virtual void Visit(ASTWhileStatement *node, int level);
-	//virtual void Visit(ASTIfElseStatement *node, int level);
-	//virtual void Visit(ASTBlockStatement *node, int level);
+	virtual void Visit(ASTWhileStatement *node, int level);
+	virtual void Visit(ASTIfElseStatement *node, int level);
+	virtual void Visit(ASTBlockStatement *node, int level);
 
 	// expression
 	virtual void Visit(ASTIdentifier *node, int level);

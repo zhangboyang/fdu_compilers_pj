@@ -161,11 +161,16 @@ class ASTArrayAssignStatement : public ASTStatement {
 	using ASTStatement::ASTStatement;
 public:
 	virtual void Accept(ASTNodeVisitor &visitor, int level) override;
+	std::shared_ptr<ASTIdentifier> GetASTIdentifier();
+	std::shared_ptr<ASTExpression> GetSubscriptASTExpression();
+	std::shared_ptr<ASTExpression> GetASTExpression();
 };
 class ASTAssignStatement : public ASTStatement {
 	using ASTStatement::ASTStatement;
 public:
 	virtual void Accept(ASTNodeVisitor &visitor, int level) override;
+	std::shared_ptr<ASTIdentifier> GetASTIdentifier();
+	std::shared_ptr<ASTExpression> GetASTExpression();
 };
 class ASTPrintlnStatement : public ASTStatement {
 	using ASTStatement::ASTStatement;
@@ -177,11 +182,16 @@ class ASTWhileStatement : public ASTStatement {
 	using ASTStatement::ASTStatement;
 public:
 	virtual void Accept(ASTNodeVisitor &visitor, int level) override;
+	std::shared_ptr<ASTExpression> GetASTExpression();
+	std::shared_ptr<ASTStatement> GetASTStatement();
 };
 class ASTIfElseStatement : public ASTStatement {
 	using ASTStatement::ASTStatement;
 public:
 	virtual void Accept(ASTNodeVisitor &visitor, int level) override;
+	std::shared_ptr<ASTExpression> GetASTExpression();
+	std::shared_ptr<ASTStatement> GetThenASTStatement();
+	std::shared_ptr<ASTStatement> GetElseASTStatement();
 };
 class ASTBlockStatement : public ASTStatement {
 	using ASTStatement::ASTStatement;

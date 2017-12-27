@@ -208,16 +208,15 @@ void DataBuffer::Dump()
 
 		// print reloc info
 		if (!item->reloc.empty()) {
-			bool flag = false;
+			printf("    reloc");
 			for (auto &r: item->reloc) {
 				for (auto &p: extsym) { // FIXME: O(n^2)
 					if (r.target == p.second) {
-						printf("    reloc +%02X %s\n", r.off, p.first.c_str());
-						flag = true;
+						printf(" +%02X %s ", r.off, p.first.c_str());
 					}
 				}
 			}
-			if (!flag) printf("    reloc\n");
+			printf("\n");
 		}
 	}
 }
@@ -255,6 +254,13 @@ CodeGen *CodeGen::Instance()
 	return &inst;
 }
 
+void CodeGen::AssertTypeEmpty(const yyltype &loc)
+{
+	if (!varstack.empty()) {
+		MiniJavaC::Instance()->ReportError(loc, "internal error: assert failed, stack not empty");
+		return;
+	}
+}
 TypeInfo CodeGen::PopType()
 {
 	TypeInfo r = varstack.back();
@@ -300,8 +306,49 @@ void CodeGen::Visit(ASTExpression *node, int level)
 
 
 // statment
-//virtual void Visit(ASTArrayAssignStatement *node, int level);
-//virtual void Visit(ASTAssignStatement *node, int level);
+void CodeGen::Visit(ASTArrayAssignStatement *node, int level)
+{
+	GenerateCodeForASTNode(node->GetASTIdentifier());
+	PopAndCheckType(node->GetASTIdentifier()->loc, TypeInfo{ASTType::VT_INTARRAY});
+
+	GenerateCodeForASTNode(node->GetSubscriptASTExpression());
+	PopAndCheckType(node->GetSubscriptASTExpression()->loc, TypeInfo{ASTType::VT_INT});
+
+	GenerateCodeForASTNode(node->GetASTExpression());
+	PopAndCheckType(node->GetASTExpression()->loc, TypeInfo{ASTType::VT_INT});
+
+	code.AppendItem(DataItem::New()->AddU8({0x58})->SetComment("POP EAX"));
+	code.AppendItem(DataItem::New()->AddU8({0x59})->SetComment("POP ECX"));
+	code.AppendItem(DataItem::New()->AddU8({0x5A})->SetComment("POP EDX"));
+	code.AppendItem(DataItem::New()->AddU8({0x89, 0x04, 0x8A})->SetComment("MOV [ECX*4+EDX],EAX"));
+	code.AppendItem(DataItem::New()->AddU8({0x58})->SetComment("POP EAX"));
+}
+void CodeGen::Visit(ASTAssignStatement *node, int level)
+{
+	GenerateCodeForASTNode(node->GetASTExpression());
+	auto v = GetLocalVar(node->GetASTIdentifier()->id);
+	if (v.second.type != ASTType::VT_UNKNOWN) {
+		PopAndCheckType(node->GetASTIdentifier()->loc, v.second);
+		assert(v.first.second % 4 == 0);
+		for (data_off_t i = 0; i < v.first.second; i += 4) {
+			// pop [ebp+(off+i)]
+			code.AppendItem(DataItem::New()->AddU8({0x8F, 0x85})->AddU32({(uint32_t)(v.first.first + i)})->SetComment("store local-var " + node->GetASTIdentifier()->id));
+		}
+	} else {
+		v = GetMemberVar(node->GetASTIdentifier()->id);
+		if (v.second.type != ASTType::VT_UNKNOWN) {
+			PopAndCheckType(node->GetASTIdentifier()->loc, v.second);
+			LoadThisToEAX();
+			assert(v.first.second % 4 == 0);
+			for (data_off_t i = 0; i < v.first.second; i += 4) {
+				// pop [eax+(off+i)]
+				code.AppendItem(DataItem::New()->AddU8({0x8F, 0x80})->AddU32({(uint32_t)(v.first.first + i)})->SetComment("store member-var " + node->GetASTIdentifier()->id));
+			}
+		} else {
+			MiniJavaC::Instance()->ReportError(node->loc, "undeclared identifier " + node->GetASTIdentifier()->id);
+		}
+	}
+}
 void CodeGen::Visit(ASTPrintlnStatement *node, int level)
 {
 	GenerateCodeForASTNode(node->GetASTExpression());
@@ -312,9 +359,46 @@ void CodeGen::Visit(ASTPrintlnStatement *node, int level)
 	code.AppendItem(DataItem::New()->AddU8({0xE8})->AddRel32(0x5, RelocInfo::RELOC_REL, code.NewExternalSymbol("$MSVCRT.printf"))->SetComment("CALL printf"));
 	code.AppendItem(DataItem::New()->AddU8({0x83, 0xC4, 0x08})->SetComment("ADD ESP,8"));
 }
-//virtual void Visit(ASTWhileStatement *node, int level);
-//virtual void Visit(ASTIfElseStatement *node, int level);
-//virtual void Visit(ASTBlockStatement *node, int level);
+void CodeGen::Visit(ASTWhileStatement *node, int level)
+{
+	auto beginmarker = DataItem::New();
+	auto endmarker = DataItem::New();
+
+	code.AppendItem(beginmarker);
+	GenerateCodeForASTNode(node->GetASTExpression());
+	PopAndCheckType(node->GetASTExpression()->loc, (TypeInfo { ASTType::VT_BOOLEAN }));
+	code.AppendItem(DataItem::New()->AddU8({0x58})->SetComment("POP EAX"));
+	code.AppendItem(DataItem::New()->AddU8({0x85, 0xC0})->SetComment("TEST EAX,EAX"));
+	code.AppendItem(DataItem::New()->AddU8({0x0F, 0x84})->AddRel32(0x6, RelocInfo::RELOC_REL, endmarker)->SetComment("JZ end-marker"));
+
+	GenerateCodeForASTNode(node->GetASTStatement());
+	code.AppendItem(DataItem::New()->AddU8({0xE9})->AddRel32(0x5, RelocInfo::RELOC_REL, beginmarker)->SetComment("JMP begin-marker"));
+	
+	code.AppendItem(endmarker);
+}
+void CodeGen::Visit(ASTIfElseStatement *node, int level)
+{
+	auto endmarker = DataItem::New();
+	auto elsemarker = DataItem::New();
+
+	GenerateCodeForASTNode(node->GetASTExpression());
+	PopAndCheckType(node->GetASTExpression()->loc, (TypeInfo { ASTType::VT_BOOLEAN }));
+	code.AppendItem(DataItem::New()->AddU8({0x58})->SetComment("POP EAX"));
+	code.AppendItem(DataItem::New()->AddU8({0x85, 0xC0})->SetComment("TEST EAX,EAX"));
+	code.AppendItem(DataItem::New()->AddU8({0x0F, 0x84})->AddRel32(0x6, RelocInfo::RELOC_REL, elsemarker)->SetComment("JZ else-marker"));
+
+	GenerateCodeForASTNode(node->GetThenASTStatement());
+
+	code.AppendItem(DataItem::New()->AddU8({0xE9})->AddRel32(0x5, RelocInfo::RELOC_REL, endmarker)->SetComment("JMP end-marker"));
+	code.AppendItem(elsemarker);
+
+	GenerateCodeForASTNode(node->GetElseASTStatement());
+	code.AppendItem(endmarker);
+}
+void CodeGen::Visit(ASTBlockStatement *node, int level)
+{
+	VisitChildren(node, level);
+}
 
 // expression
 void CodeGen::Visit(ASTIdentifier *node, int level)
@@ -589,6 +673,7 @@ void CodeGen::GenerateCodeForMainMethod(std::shared_ptr<ASTMainClass> maincls)
 	GenerateCodeForASTNode(maincls->GetASTStatement());
 	code.AppendItem(DataItem::New()->AddU8({0x6A, 0x00})->SetComment("PUSH 0"));
 	code.AppendItem(DataItem::New()->AddU8({0xE8})->AddRel32(0x5, RelocInfo::RELOC_REL, code.NewExternalSymbol("$MSVCRT.exit"))->SetComment("CALL exit"));
+	AssertTypeEmpty(maincls->GetASTStatement()->loc);
 }
 void CodeGen::GenerateCodeForClassMethod(ClassInfoItem &cls, MethodDeclItem &method)
 {
@@ -615,6 +700,7 @@ void CodeGen::GenerateCodeForClassMethod(ClassInfoItem &cls, MethodDeclItem &met
 	
 	code.AppendItem(DataItem::New()->AddU8({0xC9})->SetComment("LEAVE"));
 	code.AppendItem(DataItem::New()->AddU8({0xC3})->SetComment("RETN"));
+	AssertTypeEmpty(method.ptr->GetASTExpression()->loc);
 }
 void CodeGen::GenerateCode()
 {

@@ -295,3 +295,4 @@ __pycache__/
 src/minijavac/minijavac/out.txt
 src/minijavac/minijavac/out.json
 src/minijavac/minijavac/test.java
+src/minijavac/minijavac/asm.txt

@@ -198,7 +198,46 @@ std::shared_ptr<ASTArgExpressionList1> ASTFunctionCallExpression::GetASTArgExpre
 
 
 ////// Statement
-
+std::shared_ptr<ASTIdentifier> ASTArrayAssignStatement::GetASTIdentifier()
+{
+	return std::dynamic_pointer_cast<ASTIdentifier>(ch[0]);
+}
+std::shared_ptr<ASTExpression> ASTArrayAssignStatement::GetSubscriptASTExpression()
+{
+	return std::dynamic_pointer_cast<ASTExpression>(ch[1]);
+}
+std::shared_ptr<ASTExpression> ASTArrayAssignStatement::GetASTExpression()
+{
+	return std::dynamic_pointer_cast<ASTExpression>(ch[2]);
+}
+std::shared_ptr<ASTIdentifier> ASTAssignStatement::GetASTIdentifier()
+{
+	return std::dynamic_pointer_cast<ASTIdentifier>(ch[0]);
+}
+std::shared_ptr<ASTExpression> ASTAssignStatement::GetASTExpression()
+{
+	return std::dynamic_pointer_cast<ASTExpression>(ch[1]);
+}
+std::shared_ptr<ASTExpression> ASTWhileStatement::GetASTExpression()
+{
+	return std::dynamic_pointer_cast<ASTExpression>(ch[0]);
+}
+std::shared_ptr<ASTStatement> ASTWhileStatement::GetASTStatement()
+{
+	return std::dynamic_pointer_cast<ASTStatement>(ch[1]);
+}
+std::shared_ptr<ASTExpression> ASTIfElseStatement::GetASTExpression()
+{
+	return std::dynamic_pointer_cast<ASTExpression>(ch[0]);
+}
+std::shared_ptr<ASTStatement> ASTIfElseStatement::GetThenASTStatement()
+{
+	return std::dynamic_pointer_cast<ASTStatement>(ch[1]);
+}
+std::shared_ptr<ASTStatement> ASTIfElseStatement::GetElseASTStatement()
+{
+	return std::dynamic_pointer_cast<ASTStatement>(ch[2]);
+}
 
 
 
