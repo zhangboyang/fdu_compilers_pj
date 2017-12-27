@@ -153,6 +153,30 @@ const char *ASTUnaryExpression::GetOperatorName()
 
 
 
+
+
+
+////// Expression
+std::shared_ptr<ASTExpression> ASTBinaryExpression::GetLeftASTExpression()
+{
+	return std::dynamic_pointer_cast<ASTExpression>(ch[0]);
+}
+std::shared_ptr<ASTExpression> ASTBinaryExpression::GetRightASTExpression()
+{
+	return std::dynamic_pointer_cast<ASTExpression>(ch[1]);
+}
+std::shared_ptr<ASTExpression> ASTPrintlnStatement::GetASTExpression()
+{
+	return std::dynamic_pointer_cast<ASTExpression>(ch[0]);
+}
+
+////// Statement
+
+
+
+
+
+
 ASTType::ASTType(const yyltype &loc, std::initializer_list<ASTNode *> l, VarType type) : ASTNode(loc, l), type(type)
 {
 }

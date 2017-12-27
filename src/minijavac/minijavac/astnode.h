@@ -90,6 +90,8 @@ public:
 	ASTBinaryExpression(const yyltype &loc, std::initializer_list<ASTNode *> l, int op);
 	virtual void Accept(ASTNodeVisitor &visitor, int level) override;
 	const char *GetOperatorName();
+	std::shared_ptr<ASTExpression> GetLeftASTExpression();
+	std::shared_ptr<ASTExpression> GetRightASTExpression();
 };
 
 class ASTUnaryExpression : public ASTExpression {
@@ -161,6 +163,7 @@ class ASTPrintlnStatement : public ASTStatement {
 	using ASTStatement::ASTStatement;
 public:
 	virtual void Accept(ASTNodeVisitor &visitor, int level) override;
+	std::shared_ptr<ASTExpression> GetASTExpression();
 };
 class ASTWhileStatement : public ASTStatement {
 	using ASTStatement::ASTStatement;
@@ -186,6 +189,7 @@ class TypeInfo;
 class ASTType : public ASTNode {
 public:
 	enum VarType {
+		VT_UNKNOWN,
 		VT_INT,
 		VT_INTARRAY,
 		VT_BOOLEAN,

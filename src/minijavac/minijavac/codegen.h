@@ -32,8 +32,12 @@ public:
 
 class TypeInfo {
 public:
-	ASTType::VarType type;
+	ASTType::VarType type = ASTType::VT_UNKNOWN;
 	std::string clsname;
+public:
+	bool operator == (const TypeInfo &r) const;
+	bool operator != (const TypeInfo &r) const;
+	std::string GetName();
 };
 
 
@@ -162,6 +166,7 @@ public:
 	std::shared_ptr<DataItem> AddU8(std::initializer_list<uint8_t> l);
 	std::shared_ptr<DataItem> AddU32(std::initializer_list<uint32_t> l);
 	std::shared_ptr<DataItem> AddRel32(uint32_t val, RelocInfo::RelocType type, std::shared_ptr<DataItem> target);
+	std::shared_ptr<DataItem> AddString(const char *str);
 };
 
 class DataBuffer {
@@ -171,7 +176,7 @@ private:
 	std::vector<std::pair<std::string, std::list<std::shared_ptr<DataItem> >::iterator > > sym; // symbols provided by current buffer (name, insert_position)
 	
 public:
-	void AppendItem(std::shared_ptr<DataItem> item);
+	std::shared_ptr<DataItem> AppendItem(std::shared_ptr<DataItem> item);
 	std::shared_ptr<DataItem> NewExternalSymbol(const std::string &name);
 	void ProvideSymbol(const std::string &name);
 	void Dump();
@@ -187,6 +192,11 @@ class CodeGen : public ASTNodeVisitor {
 public:
 	DataBuffer code, rodata, data;
 private:
+	std::vector<TypeInfo> varstack;
+	void PopAndCheckType(std::shared_ptr<ASTNode> node, TypeInfo tinfo);
+	void PopAndCheckType(ASTNode *node, TypeInfo tinfo);
+	void PushType(TypeInfo tinfo);
+
 	CodeGen();
 	void GenerateCodeForASTNode(std::shared_ptr<ASTNode> node);
 	void GenerateCodeForMainMethod(std::shared_ptr<ASTMainClass> maincls);
@@ -194,6 +204,26 @@ private:
 public:
 	virtual void Visit(ASTStatement *node, int level) override;
 	virtual void Visit(ASTExpression *node, int level) override;
+
+	// statment
+	//virtual void Visit(ASTArrayAssignStatement *node, int level);
+	//virtual void Visit(ASTAssignStatement *node, int level);
+	virtual void Visit(ASTPrintlnStatement *node, int level);
+	//virtual void Visit(ASTWhileStatement *node, int level);
+	//virtual void Visit(ASTIfElseStatement *node, int level);
+	//virtual void Visit(ASTBlockStatement *node, int level);
+
+	// expression
+	//virtual void Visit(ASTIdentifier *node, int level);
+	//virtual void Visit(ASTBoolean *node, int level);
+	virtual void Visit(ASTNumber *node, int level);
+	virtual void Visit(ASTBinaryExpression *node, int level);
+	//virtual void Visit(ASTUnaryExpression *node, int level);
+	//virtual void Visit(ASTArrayLengthExpression *node, int level);
+	//virtual void Visit(ASTFunctionCallExpression *node, int level);
+	//virtual void Visit(ASTThisExpression *node, int level);
+	//virtual void Visit(ASTNewIntArrayExpression *node, int level);
+	//virtual void Visit(ASTNewExpression *node, int level);
 public:
 	static CodeGen *Instance();
 	void GenerateCode();
