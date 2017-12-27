@@ -109,10 +109,14 @@ public:
 	virtual void Accept(ASTNodeVisitor &visitor, int level) override;
 	std::shared_ptr<ASTExpression> GetASTExpression();
 };
+class ASTArgExpressionList1;
 class ASTFunctionCallExpression : public ASTExpression {
 	using ASTExpression::ASTExpression;
 public:
 	virtual void Accept(ASTNodeVisitor &visitor, int level) override;
+	std::shared_ptr<ASTExpression> GetASTExpression();
+	std::shared_ptr<ASTIdentifier> GetASTIdentifier();
+	std::shared_ptr<ASTArgExpressionList1> GetASTArgExpressionList1();
 };
 class ASTThisExpression : public ASTExpression {
 	using ASTExpression::ASTExpression;
@@ -129,6 +133,7 @@ class ASTNewExpression : public ASTExpression {
 	using ASTExpression::ASTExpression;
 public:
 	virtual void Accept(ASTNodeVisitor &visitor, int level) override;
+	std::shared_ptr<ASTIdentifier> GetASTIdentifier();
 };
 
 class ASTArgExpressionList1 : public ASTNode {
@@ -235,6 +240,7 @@ public:
 	std::shared_ptr<ASTArgDeclarationList1> GetASTArgDeclarationList1();
 	std::shared_ptr<ASTVarDeclarationList> GetASTVarDeclarationList();
 	std::shared_ptr<ASTStatementList> GetASTStatementList();
+	std::shared_ptr<ASTExpression> GetASTExpression();
 };
 class ASTMethodDeclarationList : public ASTNode {
 	using ASTNode::ASTNode;

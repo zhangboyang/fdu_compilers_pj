@@ -157,6 +157,7 @@ public:
 	std::vector<RelocInfo> reloc;
 	std::string comment;
 	data_off_t align = 1;
+	uint8_t align_fill = 0;
 
 	// runtime data
 	data_off_t off = 0;
@@ -195,8 +196,8 @@ public:
 	DataBuffer code, rodata, data;
 private:
 	std::vector<TypeInfo> varstack;
-	void PopAndCheckType(std::shared_ptr<ASTNode> node, TypeInfo tinfo);
-	void PopAndCheckType(ASTNode *node, TypeInfo tinfo);
+	TypeInfo PopType();
+	void PopAndCheckType(const yyltype &loc, TypeInfo tinfo);
 	void PushType(TypeInfo tinfo);
 
 	void LoadThisToEAX();
@@ -234,10 +235,10 @@ public:
 	virtual void Visit(ASTBinaryExpression *node, int level);
 	virtual void Visit(ASTUnaryExpression *node, int level);
 	virtual void Visit(ASTArrayLengthExpression *node, int level);
-	//virtual void Visit(ASTFunctionCallExpression *node, int level);
-	//virtual void Visit(ASTThisExpression *node, int level);
+	virtual void Visit(ASTFunctionCallExpression *node, int level);
+	virtual void Visit(ASTThisExpression *node, int level);
 	virtual void Visit(ASTNewIntArrayExpression *node, int level);
-	//virtual void Visit(ASTNewExpression *node, int level);
+	virtual void Visit(ASTNewExpression *node, int level);
 public:
 	static CodeGen *Instance();
 	void GenerateCode();

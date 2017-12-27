@@ -182,6 +182,21 @@ std::shared_ptr<ASTExpression> ASTNewIntArrayExpression::GetASTExpression()
 	return std::dynamic_pointer_cast<ASTExpression>(ch[0]);
 }
 
+
+std::shared_ptr<ASTExpression> ASTFunctionCallExpression::GetASTExpression()
+{
+	return std::dynamic_pointer_cast<ASTExpression>(ch[0]);
+}
+std::shared_ptr<ASTIdentifier> ASTFunctionCallExpression::GetASTIdentifier()
+{
+	return std::dynamic_pointer_cast<ASTIdentifier>(ch[1]);
+}
+std::shared_ptr<ASTArgExpressionList1> ASTFunctionCallExpression::GetASTArgExpressionList1()
+{
+	return std::dynamic_pointer_cast<ASTArgExpressionList1>(ch[2]);
+}
+
+
 ////// Statement
 
 
@@ -271,6 +286,14 @@ std::shared_ptr<ASTVarDeclarationList> ASTMethodDeclaration::GetASTVarDeclaratio
 std::shared_ptr<ASTStatementList> ASTMethodDeclaration::GetASTStatementList()
 {
 	return std::dynamic_pointer_cast<ASTStatementList>(ch[4]);
+}
+std::shared_ptr<ASTExpression> ASTMethodDeclaration::GetASTExpression()
+{
+	return std::dynamic_pointer_cast<ASTExpression>(ch[5]);
+}
+std::shared_ptr<ASTIdentifier> ASTNewExpression::GetASTIdentifier()
+{
+	return std::dynamic_pointer_cast<ASTIdentifier>(ch[0]);
 }
 
 

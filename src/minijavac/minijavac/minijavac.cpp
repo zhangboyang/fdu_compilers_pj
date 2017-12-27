@@ -91,10 +91,10 @@ void MiniJavaC::DumpContent(const yyltype &loc, FILE *fp)
 	}
 }
 
-void MiniJavaC::ReportError(const yyltype &loc, const char *msg)
+void MiniJavaC::ReportError(const yyltype &loc, const std::string &msg)
 {
 	DumpContent(loc);
-	printf("ERROR : %s\n", msg);
+	printf("ERROR : %s\n", msg.c_str());
 	printf("\n");
 }
 

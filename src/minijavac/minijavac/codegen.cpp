@@ -77,7 +77,7 @@ void MethodDeclListVisitor::Visit(ASTMethodDeclaration *node, int level)
 
 	for (auto &v: list.back().decl.arg) {
 		if (list.back().localvar.Find(v.GetName()) != list.back().localvar.end()) {
-			MiniJavaC::Instance()->ReportError(node->GetASTIdentifier()->loc, (v.GetName() + " exists in both local-var and method-arg").c_str());
+			MiniJavaC::Instance()->ReportError(node->GetASTIdentifier()->loc, v.GetName() + " exists in both local-var and method-arg");
 			break;
 		}
 	}
@@ -255,21 +255,23 @@ CodeGen *CodeGen::Instance()
 	return &inst;
 }
 
-void CodeGen::PopAndCheckType(std::shared_ptr<ASTNode> node, TypeInfo tinfo)
+TypeInfo CodeGen::PopType()
 {
-	PopAndCheckType(node.get(), tinfo);
+	TypeInfo r = varstack.back();
+	varstack.pop_back();
+	return r;
 }
-void CodeGen::PopAndCheckType(ASTNode *node, TypeInfo tinfo)
+void CodeGen::PopAndCheckType(const yyltype &loc, TypeInfo tinfo)
 {
 	if (varstack.empty()) {
-		MiniJavaC::Instance()->ReportError(node->loc, "internal error: stack empty");
+		MiniJavaC::Instance()->ReportError(loc, "internal error: stack empty");
 		return;
 	}
 	TypeInfo &pinfo = varstack.back();
 	
 	if (tinfo != pinfo) {
 		std::string msg = "type mismatch: " + pinfo.GetName() + ", expected " + tinfo.GetName();
-		MiniJavaC::Instance()->ReportError(node->loc, msg.c_str());
+		MiniJavaC::Instance()->ReportError(loc, msg);
 	}
 
 	varstack.pop_back();
@@ -303,7 +305,7 @@ void CodeGen::Visit(ASTExpression *node, int level)
 void CodeGen::Visit(ASTPrintlnStatement *node, int level)
 {
 	GenerateCodeForASTNode(node->GetASTExpression());
-	PopAndCheckType(node->GetASTExpression(), TypeInfo { ASTType::VT_INT });
+	PopAndCheckType(node->GetASTExpression()->loc, TypeInfo { ASTType::VT_INT });
 
 	auto fmtstr = rodata.AppendItem(DataItem::New()->AddString("%d\n"));
 	code.AppendItem(DataItem::New()->AddU8({0x68})->AddRel32(0, RelocInfo::RELOC_ABS, fmtstr)->SetComment("PUSH fmtstr"));
@@ -333,6 +335,8 @@ void CodeGen::Visit(ASTIdentifier *node, int level)
 				// push [eax+(off+i)]
 				code.AppendItem(DataItem::New()->AddU8({0xFF, 0xB0})->AddU32({(uint32_t)(v.first.first + i)})->SetComment("load member-var " + node->id));
 			}
+		} else {
+			MiniJavaC::Instance()->ReportError(node->loc, "undeclared identifier " + node->id);
 		}
 	}
 	PushType(v.second);
@@ -373,8 +377,8 @@ void CodeGen::Visit(ASTBinaryExpression *node, int level)
 			break;
 		default: panic();
 	}
-	PopAndCheckType(node->GetRightASTExpression(), rtype);
-	PopAndCheckType(node->GetLeftASTExpression(), ltype);
+	PopAndCheckType(node->GetRightASTExpression()->loc, rtype);
+	PopAndCheckType(node->GetLeftASTExpression()->loc, ltype);
 
 	switch (node->op) {
 		case TOK_LAND:
@@ -417,7 +421,7 @@ void CodeGen::Visit(ASTUnaryExpression *node, int level)
 	GenerateCodeForASTNode(node->GetASTExpression());
 	switch (node->op) {
 		case TOK_NOT:
-			PopAndCheckType(node->GetASTExpression(), TypeInfo { ASTType::VT_BOOLEAN });
+			PopAndCheckType(node->GetASTExpression()->loc, TypeInfo { ASTType::VT_BOOLEAN });
 			code.AppendItem(DataItem::New()->AddU8({0x83, 0x34, 0xE4, 0x01})->SetComment("XOR [ESP],1"));
 			PushType(TypeInfo { ASTType::VT_BOOLEAN });
 			break;
@@ -431,17 +435,88 @@ void CodeGen::Visit(ASTUnaryExpression *node, int level)
 void CodeGen::Visit(ASTArrayLengthExpression *node, int level)
 {
 	GenerateCodeForASTNode(node->GetASTExpression());
-	PopAndCheckType(node->GetASTExpression(), TypeInfo { ASTType::VT_INTARRAY });
+	PopAndCheckType(node->GetASTExpression()->loc, TypeInfo { ASTType::VT_INTARRAY });
 	code.AppendItem(DataItem::New()->AddU8({0x58})->SetComment("POP EAX"));
 	PushType(TypeInfo { ASTType::VT_INT });
 }
 
-//virtual void Visit(ASTFunctionCallExpression *node, int level);
-//virtual void Visit(ASTThisExpression *node, int level);
+void CodeGen::Visit(ASTFunctionCallExpression *node, int level)
+{
+	class MethodArgVisitor : public ASTNodeVisitor {
+	public:
+		std::vector<std::shared_ptr<ASTNode> > arglist;
+		virtual void Visit(ASTExpression *node, int level) override
+		{
+			arglist.push_back(node->GetSharedPtr());
+		}
+	};
+
+	MethodArgVisitor v;
+	node->GetASTArgExpressionList1()->Accept(v);
+	std::reverse(v.arglist.begin(), v.arglist.end());
+
+	for (auto &argexpr: v.arglist) {
+		GenerateCodeForASTNode(argexpr);
+	}
+	
+	GenerateCodeForASTNode(node->GetASTExpression());
+	TypeInfo cls = PopType();
+	VarDeclList *marglist = nullptr;
+	data_off_t vtbloff;
+	TypeInfo rtype;
+
+	if (cls.type == ASTType::VT_CLASS) {
+		auto cit = clsinfo.Find(cls.clsname);
+		if (cit != clsinfo.end()) {
+			auto mit = cit->method.Find(node->GetASTIdentifier()->id);
+			if (mit != cit->method.end()) {
+				marglist = &mit->decl.arg;
+				vtbloff = mit->off;
+				rtype = mit->decl.rettype;
+			} else {
+				MiniJavaC::Instance()->ReportError(node->GetASTIdentifier()->loc, "no such method");
+			}
+		} else {
+			MiniJavaC::Instance()->ReportError(node->GetASTExpression()->loc, "no such class");
+		}
+	} else {
+		MiniJavaC::Instance()->ReportError(node->GetASTExpression()->loc, "not a class");
+	}
+
+	if (marglist && marglist->size() == v.arglist.size()) {
+		for (auto it = marglist->rbegin(); it != marglist->rend(); it++) {	
+			PopAndCheckType((*(v.arglist.rbegin() + (it - marglist->rbegin())))->loc, it->decl.type);
+		}
+		code.AppendItem(DataItem::New()->AddU8({0x8B, 0x04, 0xE4})->SetComment("MOV EAX,[ESP] (eax=this)"));
+		code.AppendItem(DataItem::New()->AddU8({0x8B, 0x00})->SetComment("MOV EAX,[EAX] (eax=vfptr)"));
+		code.AppendItem(DataItem::New()->AddU8({0xFF, 0x90})->AddU32({(uint32_t)vtbloff})->SetComment("CALL [EAX+vtbloff] (eax=vfptr)"));
+		code.AppendItem(DataItem::New()->AddU8({0x81, 0xC4})->AddU32({(uint32_t)((v.arglist.size() + 1) * 4)})->SetComment("ADD ESP,argsize"));
+		code.AppendItem(DataItem::New()->AddU8({0x50})->SetComment("PUSH EAX"));
+
+		PushType(rtype);
+	} else {
+		for (auto &t: v.arglist) {
+			PopType();
+		}
+		MiniJavaC::Instance()->ReportError(node->GetASTArgExpressionList1()->loc, "arg number mismatch");
+		PushType(TypeInfo { ASTType::VT_UNKNOWN });
+	}
+}
+void CodeGen::Visit(ASTThisExpression *node, int level)
+{
+	if (cur_cls) {
+		LoadThisToEAX();
+		code.AppendItem(DataItem::New()->AddU8({0x50})->SetComment("PUSH EAX"));
+		PushType(TypeInfo { ASTType::VT_CLASS, cur_cls->name });
+	} else {
+		MiniJavaC::Instance()->ReportError(node->loc, "invalid use of this");
+		PushType(TypeInfo { ASTType::VT_UNKNOWN });
+	}
+}
 void CodeGen::Visit(ASTNewIntArrayExpression *node, int level)
 {
 	GenerateCodeForASTNode(node->GetASTExpression());
-	PopAndCheckType(node->GetASTExpression(), TypeInfo { ASTType::VT_INT });
+	PopAndCheckType(node->GetASTExpression()->loc, TypeInfo { ASTType::VT_INT });
 	code.AppendItem(DataItem::New()->AddU8({0x6A, 0x04})->SetComment("PUSH 4"));
 	code.AppendItem(DataItem::New()->AddU8({0xFF, 0x74, 0xE4, 0x04})->SetComment("PUSH [ESP+4]"));
 	code.AppendItem(DataItem::New()->AddU8({0xE8})->AddRel32(0x5, RelocInfo::RELOC_REL, code.NewExternalSymbol("$MSVCRT.calloc"))->SetComment("CALL calloc"));
@@ -449,12 +524,31 @@ void CodeGen::Visit(ASTNewIntArrayExpression *node, int level)
 	code.AppendItem(DataItem::New()->AddU8({0x50})->SetComment("PUSH EAX"));
 	PushType(TypeInfo { ASTType::VT_INTARRAY });
 }
-//virtual void Visit(ASTNewExpression *node, int level);
+void CodeGen::Visit(ASTNewExpression *node, int level)
+{
+	auto clsname = node->GetASTIdentifier()->id;
+	auto it = clsinfo.Find(clsname);
+	if (it != clsinfo.end()) {
+		data_off_t clssize = it->var.GetTotalSize() + 4;
+		
+		code.AppendItem(DataItem::New()->AddU8({0x68})->AddU32({(uint32_t)clssize})->SetComment("PUSH clssize"));
+		code.AppendItem(DataItem::New()->AddU8({0x6A, 0x01})->SetComment("PUSH 1"));
+		code.AppendItem(DataItem::New()->AddU8({0xE8})->AddRel32(0x5, RelocInfo::RELOC_REL, code.NewExternalSymbol("$MSVCRT.calloc"))->SetComment("CALL calloc"));
+		code.AppendItem(DataItem::New()->AddU8({0x83, 0xC4, 0x08})->SetComment("ADD ESP,8"));
+		code.AppendItem(DataItem::New()->AddU8({0x50})->SetComment("PUSH EAX"));
+		code.AppendItem(DataItem::New()->AddU8({0xC7, 0x00})->AddRel32(0, RelocInfo::RELOC_ABS, code.NewExternalSymbol(clsname + ".$vfptr"))->SetComment("MOV [EAX],vfptr"));
+	
+		PushType(TypeInfo { ASTType::VT_CLASS, clsname });
+	} else {
+		MiniJavaC::Instance()->ReportError(node->GetASTIdentifier()->loc, "undeclared class " + clsname);
+		PushType(TypeInfo { ASTType::VT_UNKNOWN });
+	}
+}
 
 
 void CodeGen::LoadThisToEAX()
 {
-	code.AppendItem(DataItem::New()->AddU8({0x8B, 0x45, 0x08})->SetComment("MOV EAX,[EBP+8]"));
+	code.AppendItem(DataItem::New()->AddU8({0x8B, 0x45, 0x08})->SetComment("MOV EAX,[EBP+8] (load this)"));
 }
 
 std::pair<std::pair<data_off_t, data_off_t>, TypeInfo> CodeGen::GetLocalVar(const std::string &name)
@@ -512,12 +606,15 @@ void CodeGen::GenerateCodeForClassMethod(ClassInfoItem &cls, MethodDeclItem &met
 		code.AppendItem(DataItem::New()->AddU8({0x6A, 0x00})->SetComment("PUSH 0"));
 	}
 
-
 	GenerateCodeForASTNode(method.ptr->GetASTStatementList());
 
-	// FIXME: return value
+
+	GenerateCodeForASTNode(method.ptr->GetASTExpression());
+	PopAndCheckType(method.ptr->GetASTExpression()->loc, method.decl.rettype);
+	code.AppendItem(DataItem::New()->AddU8({0x58})->SetComment("POP EAX"));
 	
-	code.AppendItem(DataItem::New()->AddU8({0xCC})->SetComment("== end of function"));
+	code.AppendItem(DataItem::New()->AddU8({0xC9})->SetComment("LEAVE"));
+	code.AppendItem(DataItem::New()->AddU8({0xC3})->SetComment("RETN"));
 }
 void CodeGen::GenerateCode()
 {
