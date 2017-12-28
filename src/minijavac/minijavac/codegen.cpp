@@ -198,7 +198,25 @@ data_off_t DataBuffer::CalcOffset(data_off_t base)
 	}
 	return end_addr = base;
 }
-void DataBuffer::DoRelocate(data_off_t rva_base)
+
+std::vector<uint8_t> DataBuffer::GetContent()
+{
+	std::vector<uint8_t> r;
+
+	data_off_t cursor = base_addr;
+	for (auto &item: list) {
+		while (cursor < item->off) {
+			r.push_back(item->align_fill);
+			cursor++;
+		}
+		r.insert(r.end(), item->bytes.begin(), item->bytes.end());
+		cursor += item->bytes.size();
+	}
+
+	return r;
+}
+
+void DataBuffer::DoRelocate()
 {
 	for (auto &item: list) {
 		for (auto &r: item->reloc) {
@@ -217,7 +235,7 @@ void DataBuffer::DoRelocate(data_off_t rva_base)
 					newdata = target - (addr + olddata);
 					break;
 				case RelocInfo::RELOC_RVA32:
-					newdata = target - rva_base;
+					newdata = CodeGen::ToRVA(target);
 					break;
 				default: panic();
 			}
@@ -225,6 +243,15 @@ void DataBuffer::DoRelocate(data_off_t rva_base)
 			memcpy(item->bytes.data() + r.off, &newdata, 4);
 		}
 	}
+}
+data_off_t DataBuffer::GetSymbol(const std::string &symname)
+{
+	for (auto &s: sym) {
+		if (s.first == symname) {
+			return (*s.second.second)->off;
+		}
+	}
+	return 0;
 }
 void DataBuffer::ReduceSymbols(const std::vector<DataBuffer *> buffers)
 {
@@ -790,17 +817,19 @@ void CodeGen::MakeIAT()
 	rodata.AppendItem(DataItem::New()->SetAlign(4));
 	
 	// make FirstThunk
+	rodata.ProvideSymbol("$IAT");
 	for (auto &dllitem: dllinfo) {
 		std::string &dllname = dllitem.first;
 		rodata.ProvideSymbol("IAT.FIRSTTHUNK.DLL$" + dllname);
 		for (auto &func: dllitem.second) {
 			rodata.ProvideSymbol("IAT.FIRSTTHUNK$" + dllname + "." + func);
-			rodata.AppendItem(DataItem::New()->AddRel32(0, RelocInfo::RELOC_RVA32, rodata.NewExternalSymbol("IAT.HINTNAME$" + dllname + "." + func))->SetComment(dllname + "." + func));
+			rodata.AppendItem(DataItem::New()->AddRel32(0, RelocInfo::RELOC_RVA32, rodata.NewExternalSymbol("IAT.IMPBYNAME$" + dllname + "." + func))->SetComment(dllname + "." + func));
 		}
 	}
+	rodata.ProvideSymbol("$IAT.END");
 
 	// make IMAGE_IMPORT_DESCRIPTOR
-	rodata.ProvideSymbol("$IAT");
+	rodata.ProvideSymbol("$IMPORT_DIRECTORY");
 	for (auto &dllitem: dllinfo) {
 		std::string &dllname = dllitem.first;
 		rodata.AppendItem(DataItem::New()->AddRel32(0, RelocInfo::RELOC_RVA32, rodata.NewExternalSymbol("IAT.HINTNAME.DLL$" + dllname))->SetComment("Characteristics"));
@@ -810,6 +839,7 @@ void CodeGen::MakeIAT()
 		rodata.AppendItem(DataItem::New()->AddRel32(0, RelocInfo::RELOC_RVA32, rodata.NewExternalSymbol("IAT.FIRSTTHUNK.DLL$" + dllname))->SetComment("FirstThunk"));
 	}
 	rodata.AppendItem(DataItem::New()->AddU32({0, 0, 0, 0, 0}));
+	rodata.ProvideSymbol("$IMPORT_DIRECTORY.END");
 
 	// make HINTNAME and IMAGE_IMPORT_BY_NAME and DLL NAME
 	for (auto &dllitem: dllinfo) {
@@ -826,25 +856,130 @@ void CodeGen::MakeIAT()
 
 		// IMAGE_IMPORT_BY_NAME
 		for (auto &func: dllitem.second) {
+			rodata.AppendItem(DataItem::New()->SetAlign(2));
 			rodata.ProvideSymbol("IAT.IMPBYNAME$" + dllname + "." + func);
-			rodata.AppendItem(DataItem::New()->SetAlign(2)->AddU8({0, 0}));
+			rodata.AppendItem(DataItem::New()->AddU8({0, 0}));
 			rodata.AppendItem(DataItem::New()->AddString(func.c_str()));
 		}
 
 		// DLL NAME
+		rodata.AppendItem(DataItem::New()->SetAlign(0x10));
 		rodata.ProvideSymbol("IAT.NAME.DLL$" + dllname);
-		rodata.AppendItem(DataItem::New()->SetAlign(0x10)->AddString((dllname + ".dll").c_str()));
+		rodata.AppendItem(DataItem::New()->AddString((dllname + ".dll").c_str()));
 	}
 }
 void CodeGen::MakeEXE()
 {
+	FILE *fp = fopen("out.exe", "wb");
+
 	
+	// dos header and dos stub
+	fwrite(
+		"\x4D\x5A\x90\x00\x03\x00\x00\x00\x04\x00\x00\x00\xFF\xFF\x00\x00"
+		"\xB8\x00\x00\x00\x00\x00\x00\x00\x40\x00\x00\x00\x00\x00\x00\x00"
+		"\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00"
+		"\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x80\x00\x00\x00"
+		"\x0E\x1F\xBA\x0E\x00\xB4\x09\xCD\x21\xB8\x01\x4C\xCD\x21\x54\x68"
+		"\x69\x73\x20\x70\x72\x6F\x67\x72\x61\x6D\x20\x63\x61\x6E\x6E\x6F"
+		"\x74\x20\x62\x65\x20\x72\x75\x6E\x20\x69\x6E\x20\x44\x4F\x53\x20"
+		"\x6D\x6F\x64\x65\x2E\x0D\x0D\x0A\x24\x00\x00\x00\x00\x00\x00\x00",
+		1, 0x80, fp);
+
+	
+	IMAGE_NT_HEADERS nthdr; memset(&nthdr, 0, sizeof(nthdr));
+    PIMAGE_FILE_HEADER pfilehdr = &nthdr.FileHeader;
+    PIMAGE_OPTIONAL_HEADER popthdr = &nthdr.OptionalHeader;
+	PIMAGE_DATA_DIRECTORY ppedirectory = popthdr->DataDirectory;
+	
+	assert(PE_FILEALIGN == PE_SECTIONALIGN);
+	nthdr.Signature = 0x4550;
+    
+    pfilehdr->Machine = IMAGE_FILE_MACHINE_I386;
+    pfilehdr->NumberOfSections = PE_TOTAL_SECTIONS;
+    pfilehdr->TimeDateStamp = time(NULL);
+    pfilehdr->SizeOfOptionalHeader = 0xE0;
+    pfilehdr->Characteristics = IMAGE_FILE_RELOCS_STRIPPED | IMAGE_FILE_EXECUTABLE_IMAGE | IMAGE_FILE_LINE_NUMS_STRIPPED | IMAGE_FILE_LOCAL_SYMS_STRIPPED | IMAGE_FILE_32BIT_MACHINE;
+    
+    popthdr->Magic = IMAGE_NT_OPTIONAL_HDR_MAGIC;
+    popthdr->MajorLinkerVersion = 6;
+    popthdr->SizeOfCode = ROUNDUP(code.end_addr - code.base_addr, PE_SECTIONALIGN);
+    popthdr->SizeOfInitializedData = ROUNDUP(data.end_addr - rodata.base_addr, PE_SECTIONALIGN);
+    popthdr->AddressOfEntryPoint = ToRVA(GetSymbol("$ENTRY"));
+    popthdr->BaseOfCode = PE_CODEBASE;
+    popthdr->BaseOfData = PE_CODEBASE + popthdr->SizeOfCode;
+    popthdr->ImageBase = PE_IMAGEBASE;
+    popthdr->SectionAlignment = PE_SECTIONALIGN;
+    popthdr->FileAlignment = PE_FILEALIGN;
+    popthdr->MajorOperatingSystemVersion = 4;
+    popthdr->MajorSubsystemVersion = 4;
+    popthdr->SizeOfImage = ROUNDUP(data.end_addr - PE_IMAGEBASE, PE_SECTIONALIGN);
+    popthdr->SizeOfHeaders = PE_CODEBASE;
+    popthdr->Subsystem = IMAGE_SUBSYSTEM_WINDOWS_CUI;
+    popthdr->SizeOfStackReserve = 0x100000;
+    popthdr->SizeOfStackCommit = 0x1000;
+    popthdr->SizeOfHeapReserve = 0x100000;
+    popthdr->SizeOfHeapCommit = 0x1000;
+    popthdr->NumberOfRvaAndSizes = IMAGE_NUMBEROF_DIRECTORY_ENTRIES;
+    
+
+	ppedirectory[IMAGE_DIRECTORY_ENTRY_IMPORT].VirtualAddress = ToRVA(GetSymbol("$IMPORT_DIRECTORY"));
+	ppedirectory[IMAGE_DIRECTORY_ENTRY_IMPORT].Size = GetSymbol("$IMPORT_DIRECTORY.END") - GetSymbol("$IMPORT_DIRECTORY");
+	
+	ppedirectory[IMAGE_DIRECTORY_ENTRY_IAT].VirtualAddress = ToRVA(GetSymbol("$IAT"));
+	ppedirectory[IMAGE_DIRECTORY_ENTRY_IAT].Size = GetSymbol("$IAT.END") - GetSymbol("$IAT");
+
+	fwrite(&nthdr, sizeof(nthdr), 1, fp);
+
+
+	std::vector<DataBuffer *> sections{&code, &rodata, &data};
+	const char *shdr_name[] = {".text", ".rdata", ".data"};
+	DWORD shdr_flags[] = {0x60000020, 0x40000040, 0xC0000040};
+	
+	IMAGE_SECTION_HEADER shdr;
+	for (size_t i = 0; i < sections.size(); i++) {
+		auto seg = sections[i];
+		memset(&shdr, 0, sizeof(shdr));
+		
+		strncpy((char *) shdr.Name, shdr_name[i], sizeof(shdr.Name));
+		shdr.Misc.VirtualSize = seg->end_addr - seg->base_addr;
+        shdr.VirtualAddress = ToRVA(seg->base_addr);
+        shdr.SizeOfRawData = ROUNDUP(seg->end_addr - seg->base_addr, PE_SECTIONALIGN);
+        shdr.PointerToRawData = ToRVA(seg->base_addr);
+        shdr.Characteristics = shdr_flags[i];
+
+		fwrite(&shdr, sizeof(shdr), 1, fp);
+	}
+
+	fseek(fp, popthdr->SizeOfImage - 1, SEEK_SET);
+	fputc(0, fp);
+
+	std::vector<uint8_t> segdata;
+	for (auto &seg: sections) {
+		segdata = seg->GetContent();
+		fseek(fp, ToRVA(seg->base_addr), SEEK_SET);
+		fwrite(segdata.data(), 1, segdata.size(), fp);
+	}
+
+	fclose(fp);
+}
+data_off_t CodeGen::ToRVA(data_off_t addr)
+{
+	return addr - PE_IMAGEBASE;
+}
+
+data_off_t CodeGen::GetSymbol(const std::string &sym)
+{
+	std::vector<DataBuffer *> sections{&code, &rodata, &data};
+	for (auto &sect: sections) {
+		data_off_t v = sect->GetSymbol(sym);
+		if (v) return v;
+	}
+	return 0;
 }
 void CodeGen::Link()
 {
-	const data_off_t pe_base = 0x00400000;
-	const data_off_t sect_align = 0x1000;
-	data_off_t base = pe_base + 0x1000;
+	data_off_t base = PE_IMAGEBASE + PE_CODEBASE;
+
 
 	std::vector<DataBuffer *> sections{&code, &rodata, &data};
 
@@ -854,12 +989,12 @@ void CodeGen::Link()
 	printf(" [*] Calc address ...\n");
 	for (auto &sect: sections) {
 		base = sect->CalcOffset(base);
-		base = ROUNDUP(base, sect_align);
+		base = ROUNDUP(base, PE_SECTIONALIGN);
 	}
 
 	printf(" [*] Relocating ...\n");
 	for (auto &sect: sections) {
-		sect->DoRelocate(pe_base);
+		sect->DoRelocate();
 	}
 
 	printf(" [*] Making EXE ...\n");

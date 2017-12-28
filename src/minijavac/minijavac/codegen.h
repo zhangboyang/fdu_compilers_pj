@@ -178,16 +178,19 @@ private:
 	std::list<std::shared_ptr<DataItem> > list;
 	std::vector<std::pair<std::string, std::pair<std::shared_ptr<DataItem>, bool> > > extsym; // external reference (name, (marker_to_insert, done_flag))
 	std::vector<std::pair<std::string, std::pair<std::list<std::shared_ptr<DataItem> > *, std::list<std::shared_ptr<DataItem> >::iterator > > > sym; // symbols provided by current buffer (name, (list_ptr, insert_position))
+public:
 	data_off_t base_addr;
 	data_off_t end_addr;
 public:
 	std::shared_ptr<DataItem> AppendItem(std::shared_ptr<DataItem> item);
 	std::shared_ptr<DataItem> NewExternalSymbol(const std::string &name);
 	data_off_t CalcOffset(data_off_t base);
-	void DoRelocate(data_off_t rva_base);
+	void DoRelocate();
 	void ProvideSymbol(const std::string &name);
 	void Dump();
 	static void ReduceSymbols(const std::vector<DataBuffer *> buffers);
+	data_off_t GetSymbol(const std::string &symname);
+	std::vector<uint8_t> GetContent();
 };
 
 
@@ -196,6 +199,11 @@ public:
 
 
 class CodeGen : public ASTNodeVisitor {
+	static const unsigned PE_TOTAL_SECTIONS = 3;
+	static const unsigned PE_IMAGEBASE = 0x00400000;
+	static const unsigned PE_SECTIONALIGN = 0x1000;
+	static const unsigned PE_CODEBASE = 0x1000;
+	static const unsigned PE_FILEALIGN = 0x1000;
 public:
 	ClassInfoItem *cur_cls;
 	MethodDeclItem *cur_method;
@@ -235,6 +243,9 @@ private:
 	void AddImportEntry(const std::string &dllname, const std::vector<std::string> &funclist);
 	void MakeEXE();
 	
+	data_off_t GetSymbol(const std::string &sym);
+	
+
 	void Link();
 
 public:
@@ -264,4 +275,5 @@ public:
 	static CodeGen *Instance();
 	void GenerateCode();
 	void DumpSections();
+	static data_off_t ToRVA(data_off_t addr);
 };
