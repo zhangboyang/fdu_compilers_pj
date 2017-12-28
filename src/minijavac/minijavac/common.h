@@ -24,9 +24,14 @@
 #include <memory>
 #include <functional>
 
-typedef int data_off_t;
+typedef int32_t data_off_t;
 #define panic() abort()
 
 #include "minijavac.h"
 #include "astnode.h"
 #include "codegen.h"
+
+static inline data_off_t ROUNDUP(data_off_t a, data_off_t b)
+{
+	return (a + b - 1) / b * b;
+}

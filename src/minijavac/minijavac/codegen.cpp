@@ -137,12 +137,8 @@ std::shared_ptr<DataItem> DataItem::AddU8(std::initializer_list<uint8_t> l)
 std::shared_ptr<DataItem> DataItem::AddU32(std::initializer_list<uint32_t> l)
 {
 	for (auto &v: l) {
-		AddU8({
-			(uint8_t)(v & 0xFF),
-			(uint8_t)((v >> 8) & 0xFF),
-			(uint8_t)((v >> 16) & 0xFF),
-			(uint8_t)((v >> 24) & 0xFF),
-		});
+		uint8_t b[4]; memcpy(b, &v, 4);
+		AddU8({b[0], b[1], b[2], b[3]});
 	}
 	return shared_from_this();
 }
@@ -167,7 +163,12 @@ std::shared_ptr<DataItem> DataItem::AddString(const char *str)
 	SetComment(c);
 	return shared_from_this();
 }
-
+std::shared_ptr<DataItem> DataItem::SetAlign(data_off_t align, uint8_t fill)
+{
+	this->align = align;
+	this->align_fill = fill;
+	return shared_from_this();
+}
 
 std::shared_ptr<DataItem> DataBuffer::AppendItem(std::shared_ptr<DataItem> instr)
 {
@@ -177,14 +178,76 @@ std::shared_ptr<DataItem> DataBuffer::AppendItem(std::shared_ptr<DataItem> instr
 std::shared_ptr<DataItem> DataBuffer::NewExternalSymbol(const std::string &name)
 {
 	std::shared_ptr<DataItem> marker = DataItem::New();
-	extsym.push_back(std::make_pair(name, marker));
+	extsym.push_back(std::make_pair(name, std::make_pair(marker, false)));
 	return marker;
 }
 void DataBuffer::ProvideSymbol(const std::string &name)
 {
 	std::shared_ptr<DataItem> marker = DataItem::New();
 	auto it = list.insert(list.end(), marker);
-	sym.push_back(std::make_pair(name, it));
+	sym.push_back(std::make_pair(name, std::make_pair(&list, it)));
+}
+
+data_off_t DataBuffer::CalcOffset(data_off_t base)
+{
+	base_addr = base;
+	for (auto &item: list) {
+		base = ROUNDUP(base, item->align);
+		item->off = base;
+		base += item->bytes.size();
+	}
+	return end_addr = base;
+}
+void DataBuffer::DoRelocate()
+{
+	for (auto &item: list) {
+		for (auto &r: item->reloc) {
+			// assume 32bit
+			data_off_t addr = item->off/* + r.off*/;
+			data_off_t target = r.target->off;
+
+			data_off_t olddata; memcpy(&olddata, item->bytes.data() + r.off, 4);
+			data_off_t newdata;
+
+			switch (r.type) {
+				case RelocInfo::RELOC_ABS32:
+					newdata = target;
+					break;
+				case RelocInfo::RELOC_REL32:
+					newdata = target - (addr + olddata);
+					break;
+				default: panic();
+			}
+
+			memcpy(item->bytes.data() + r.off, &newdata, 4);
+		}
+	}
+}
+void DataBuffer::ReduceSymbols(const std::vector<DataBuffer *> buffers)
+{
+	std::map<std::string, std::pair<std::list<std::shared_ptr<DataItem> > *, std::list<std::shared_ptr<DataItem> >::iterator > > allsym;
+
+	for (auto &b: buffers) {
+		for (auto &s: b->sym) {
+			if (!allsym.insert(s).second) {
+				MiniJavaC::Instance()->ReportError("duplicate symbol: " + s.first);
+			}
+		}
+	}
+
+	for (auto &b: buffers) {
+		for (auto &s: b->extsym) {
+			if (!s.second.second) {
+				auto it = allsym.find(s.first);
+				if (it != allsym.end()) {
+					it->second.first->insert(it->second.second, s.second.first);
+					s.second.second = true;
+				} else {
+					MiniJavaC::Instance()->ReportError("unresolved external symbol: " + s.first);
+				}
+			}
+		}
+	}
 }
 
 void DataBuffer::Dump()
@@ -192,7 +255,7 @@ void DataBuffer::Dump()
 	for (auto lstit = list.begin(); lstit != list.end(); lstit++) {
 		auto &item = *lstit;
 		for (auto &p: sym) {
-			if (p.second == lstit) {
+			if (p.second.second == lstit) {
 				printf(" <%s>:\n", p.first.c_str());
 			}
 		}
@@ -204,17 +267,18 @@ void DataBuffer::Dump()
 			char buf[4]; sprintf(buf, "%02X ", (unsigned) b);
 			bytesdump += std::string(buf);
 		}
-		printf("  %08X: %-30s %s\n", item->off, bytesdump.c_str(), item->comment.c_str());
+		printf("  %08X: %-30s %s\n", (unsigned) item->off, bytesdump.c_str(), item->comment.c_str());
 
 		// print reloc info
 		if (!item->reloc.empty()) {
-			printf("    reloc");
+			printf("    reloc ");
 			for (auto &r: item->reloc) {
 				for (auto &p: extsym) { // FIXME: O(n^2)
-					if (r.target == p.second) {
-						printf(" +%02X %s ", r.off, p.first.c_str());
+					if (r.target == p.second.first) {
+						printf("(+%02X %s)", r.off, p.first.c_str());
 					}
 				}
+				printf(":%08X ", r.target->off);
 			}
 			printf("\n");
 		}
@@ -354,9 +418,9 @@ void CodeGen::Visit(ASTPrintlnStatement *node, int level)
 	GenerateCodeForASTNode(node->GetASTExpression());
 	PopAndCheckType(node->GetASTExpression()->loc, TypeInfo { ASTType::VT_INT });
 
-	auto fmtstr = rodata.AppendItem(DataItem::New()->AddString("%d\n"));
-	code.AppendItem(DataItem::New()->AddU8({0x68})->AddRel32(0, RelocInfo::RELOC_ABS, fmtstr)->SetComment("PUSH fmtstr"));
-	code.AppendItem(DataItem::New()->AddU8({0xE8})->AddRel32(0x5, RelocInfo::RELOC_REL, code.NewExternalSymbol("$MSVCRT.printf"))->SetComment("CALL printf"));
+	auto fmtstr = data.AppendItem(DataItem::New()->AddString("%d\n"));
+	code.AppendItem(DataItem::New()->AddU8({0x68})->AddRel32(0, RelocInfo::RELOC_ABS32, fmtstr)->SetComment("PUSH fmtstr"));
+	code.AppendItem(DataItem::New()->AddU8({0xE8})->AddRel32(0x5, RelocInfo::RELOC_REL32, code.NewExternalSymbol("IMP$msvcrt.printf"))->SetComment("CALL printf"));
 	code.AppendItem(DataItem::New()->AddU8({0x83, 0xC4, 0x08})->SetComment("ADD ESP,8"));
 }
 void CodeGen::Visit(ASTWhileStatement *node, int level)
@@ -369,10 +433,10 @@ void CodeGen::Visit(ASTWhileStatement *node, int level)
 	PopAndCheckType(node->GetASTExpression()->loc, (TypeInfo { ASTType::VT_BOOLEAN }));
 	code.AppendItem(DataItem::New()->AddU8({0x58})->SetComment("POP EAX"));
 	code.AppendItem(DataItem::New()->AddU8({0x85, 0xC0})->SetComment("TEST EAX,EAX"));
-	code.AppendItem(DataItem::New()->AddU8({0x0F, 0x84})->AddRel32(0x6, RelocInfo::RELOC_REL, endmarker)->SetComment("JZ end-marker"));
+	code.AppendItem(DataItem::New()->AddU8({0x0F, 0x84})->AddRel32(0x6, RelocInfo::RELOC_REL32, endmarker)->SetComment("JZ end-marker"));
 
 	GenerateCodeForASTNode(node->GetASTStatement());
-	code.AppendItem(DataItem::New()->AddU8({0xE9})->AddRel32(0x5, RelocInfo::RELOC_REL, beginmarker)->SetComment("JMP begin-marker"));
+	code.AppendItem(DataItem::New()->AddU8({0xE9})->AddRel32(0x5, RelocInfo::RELOC_REL32, beginmarker)->SetComment("JMP begin-marker"));
 	
 	code.AppendItem(endmarker);
 }
@@ -385,11 +449,11 @@ void CodeGen::Visit(ASTIfElseStatement *node, int level)
 	PopAndCheckType(node->GetASTExpression()->loc, (TypeInfo { ASTType::VT_BOOLEAN }));
 	code.AppendItem(DataItem::New()->AddU8({0x58})->SetComment("POP EAX"));
 	code.AppendItem(DataItem::New()->AddU8({0x85, 0xC0})->SetComment("TEST EAX,EAX"));
-	code.AppendItem(DataItem::New()->AddU8({0x0F, 0x84})->AddRel32(0x6, RelocInfo::RELOC_REL, elsemarker)->SetComment("JZ else-marker"));
+	code.AppendItem(DataItem::New()->AddU8({0x0F, 0x84})->AddRel32(0x6, RelocInfo::RELOC_REL32, elsemarker)->SetComment("JZ else-marker"));
 
 	GenerateCodeForASTNode(node->GetThenASTStatement());
 
-	code.AppendItem(DataItem::New()->AddU8({0xE9})->AddRel32(0x5, RelocInfo::RELOC_REL, endmarker)->SetComment("JMP end-marker"));
+	code.AppendItem(DataItem::New()->AddU8({0xE9})->AddRel32(0x5, RelocInfo::RELOC_REL32, endmarker)->SetComment("JMP end-marker"));
 	code.AppendItem(elsemarker);
 
 	GenerateCodeForASTNode(node->GetElseASTStatement());
@@ -603,7 +667,7 @@ void CodeGen::Visit(ASTNewIntArrayExpression *node, int level)
 	PopAndCheckType(node->GetASTExpression()->loc, TypeInfo { ASTType::VT_INT });
 	code.AppendItem(DataItem::New()->AddU8({0x6A, 0x04})->SetComment("PUSH 4"));
 	code.AppendItem(DataItem::New()->AddU8({0xFF, 0x74, 0xE4, 0x04})->SetComment("PUSH [ESP+4]"));
-	code.AppendItem(DataItem::New()->AddU8({0xE8})->AddRel32(0x5, RelocInfo::RELOC_REL, code.NewExternalSymbol("$MSVCRT.calloc"))->SetComment("CALL calloc"));
+	code.AppendItem(DataItem::New()->AddU8({0xE8})->AddRel32(0x5, RelocInfo::RELOC_REL32, code.NewExternalSymbol("IMP$msvcrt.calloc"))->SetComment("CALL calloc"));
 	code.AppendItem(DataItem::New()->AddU8({0x83, 0xC4, 0x08})->SetComment("ADD ESP,8"));
 	code.AppendItem(DataItem::New()->AddU8({0x50})->SetComment("PUSH EAX"));
 	PushType(TypeInfo { ASTType::VT_INTARRAY });
@@ -617,10 +681,10 @@ void CodeGen::Visit(ASTNewExpression *node, int level)
 		
 		code.AppendItem(DataItem::New()->AddU8({0x68})->AddU32({(uint32_t)clssize})->SetComment("PUSH clssize"));
 		code.AppendItem(DataItem::New()->AddU8({0x6A, 0x01})->SetComment("PUSH 1"));
-		code.AppendItem(DataItem::New()->AddU8({0xE8})->AddRel32(0x5, RelocInfo::RELOC_REL, code.NewExternalSymbol("$MSVCRT.calloc"))->SetComment("CALL calloc"));
+		code.AppendItem(DataItem::New()->AddU8({0xE8})->AddRel32(0x5, RelocInfo::RELOC_REL32, code.NewExternalSymbol("IMP$msvcrt.calloc"))->SetComment("CALL calloc"));
 		code.AppendItem(DataItem::New()->AddU8({0x83, 0xC4, 0x08})->SetComment("ADD ESP,8"));
 		code.AppendItem(DataItem::New()->AddU8({0x50})->SetComment("PUSH EAX"));
-		code.AppendItem(DataItem::New()->AddU8({0xC7, 0x00})->AddRel32(0, RelocInfo::RELOC_ABS, code.NewExternalSymbol(clsname + ".$vfptr"))->SetComment("MOV [EAX],vfptr"));
+		code.AppendItem(DataItem::New()->AddU8({0xC7, 0x00})->AddRel32(0, RelocInfo::RELOC_ABS32, code.NewExternalSymbol(clsname + ".$vfptr"))->SetComment("MOV [EAX],vfptr"));
 	
 		PushType(TypeInfo { ASTType::VT_CLASS, clsname });
 	} else {
@@ -669,10 +733,10 @@ void CodeGen::GenerateCodeForMainMethod(std::shared_ptr<ASTMainClass> maincls)
 {
 	cur_cls = nullptr;
 	cur_method = nullptr;
-	code.ProvideSymbol("main");
+	code.ProvideSymbol("entry");
 	GenerateCodeForASTNode(maincls->GetASTStatement());
 	code.AppendItem(DataItem::New()->AddU8({0x6A, 0x00})->SetComment("PUSH 0"));
-	code.AppendItem(DataItem::New()->AddU8({0xE8})->AddRel32(0x5, RelocInfo::RELOC_REL, code.NewExternalSymbol("$MSVCRT.exit"))->SetComment("CALL exit"));
+	code.AppendItem(DataItem::New()->AddU8({0xE8})->AddRel32(0x5, RelocInfo::RELOC_REL32, code.NewExternalSymbol("IMP$msvcrt.exit"))->SetComment("CALL exit"));
 	AssertTypeEmpty(maincls->GetASTStatement()->loc);
 }
 void CodeGen::GenerateCodeForClassMethod(ClassInfoItem &cls, MethodDeclItem &method)
@@ -702,12 +766,59 @@ void CodeGen::GenerateCodeForClassMethod(ClassInfoItem &cls, MethodDeclItem &met
 	code.AppendItem(DataItem::New()->AddU8({0xC3})->SetComment("RETN"));
 	AssertTypeEmpty(method.ptr->GetASTExpression()->loc);
 }
+void CodeGen::GenerateVtblForClass(ClassInfoItem &cls)
+{
+	rodata.ProvideSymbol(cls.GetName() + ".$vfptr");
+	rodata.AppendItem(DataItem::New()->SetAlign(4));
+	for (auto &method: cls.method) {
+		rodata.AppendItem(DataItem::New()->AddRel32(0, RelocInfo::RELOC_ABS32, rodata.NewExternalSymbol(cls.GetName() + "." + method.GetName())));
+	}
+}
+void CodeGen::AddImportEntry(const std::string &dllname, const std::vector<std::string> &funclist)
+{
+	// FIXME
+	for (auto &func: funclist) {
+		code.ProvideSymbol("IMP$" + dllname + "." + func);
+		code.AppendItem(DataItem::New()->AddU8({0xFF, 0x25})->AddRel32(0, RelocInfo::RELOC_ABS32, code.NewExternalSymbol("IAT$" + dllname + "." + func))->SetComment(dllname + "." + func));
+	}
+}
+void CodeGen::Link()
+{
+	data_off_t base = 0x00400000;
+	const data_off_t sect_align = 0x1000;
+
+	std::vector<DataBuffer *> sections{&code, &rodata, &data};
+
+	printf(" [*] Processing symbols ...\n");
+	DataBuffer::ReduceSymbols(sections);
+
+	printf(" [*] Calc address ...\n");
+	for (auto &sect: sections) {
+		base = sect->CalcOffset(base);
+		base = ROUNDUP(base, sect_align);
+	}
+
+	printf(" [*] Relocating ...\n");
+	for (auto &sect: sections) {
+		sect->DoRelocate();
+	}
+}
+
+void CodeGen::DumpSections()
+{
+	printf(".code:\n");
+	code.Dump();
+	printf(".rodata:\n");
+	rodata.Dump();
+	printf(".data:\n");
+	data.Dump();
+}
 void CodeGen::GenerateCode()
 {
 	printf("[*] Generating type information ...\n");
 	clsinfo = MiniJavaC::Instance()->goal->GetClassInfoList();
 
-	printf("[*[ Generating code for main() ...\n");
+	printf("[*] Generating code for main() ...\n");
 	GenerateCodeForMainMethod(MiniJavaC::Instance()->goal->GetASTMainClass());
 
 	for (auto &cls: clsinfo) {
@@ -718,10 +829,17 @@ void CodeGen::GenerateCode()
 		}
 	}
 
-	printf(".code:\n");
-	code.Dump();
-	printf(".rodata:\n");
-	rodata.Dump();
-	printf(".data:\n");
-	data.Dump();
+	for (auto &cls: clsinfo) {
+		printf("[*] Generating virtual function table for class %s ...\n", cls.GetName().c_str());
+		GenerateVtblForClass(cls);
+	}
+
+	printf("[*] Adding DLL import table ...\n");
+	AddImportEntry("msvcrt", {"printf", "calloc", "exit"});
+
+	printf("[*] Linking ...\n");
+	Link();
+
+
+	DumpSections();
 }

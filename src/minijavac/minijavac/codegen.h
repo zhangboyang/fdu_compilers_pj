@@ -138,12 +138,13 @@ class DataItem;
 class RelocInfo {
 public:
 	enum RelocType {
-		RELOC_ABS,
-		RELOC_REL,
+		RELOC_ABS32,
+		RELOC_REL32,
 	};
 	data_off_t off;
 	RelocType type;
 	std::shared_ptr<DataItem> target;
+	bool done = false;
 };
 
 class DataBuffer;
@@ -168,19 +169,24 @@ public:
 	std::shared_ptr<DataItem> AddU32(std::initializer_list<uint32_t> l);
 	std::shared_ptr<DataItem> AddRel32(uint32_t val, RelocInfo::RelocType type, std::shared_ptr<DataItem> target);
 	std::shared_ptr<DataItem> AddString(const char *str);
+	std::shared_ptr<DataItem> SetAlign(data_off_t align, uint8_t fill = 0);
 };
 
 class DataBuffer {
 private:
 	std::list<std::shared_ptr<DataItem> > list;
-	std::vector<std::pair<std::string, std::shared_ptr<DataItem> > > extsym; // external reference (name, marker_to_insert)
-	std::vector<std::pair<std::string, std::list<std::shared_ptr<DataItem> >::iterator > > sym; // symbols provided by current buffer (name, insert_position)
-	
+	std::vector<std::pair<std::string, std::pair<std::shared_ptr<DataItem>, bool> > > extsym; // external reference (name, (marker_to_insert, done_flag))
+	std::vector<std::pair<std::string, std::pair<std::list<std::shared_ptr<DataItem> > *, std::list<std::shared_ptr<DataItem> >::iterator > > > sym; // symbols provided by current buffer (name, (list_ptr, insert_position))
+	data_off_t base_addr;
+	data_off_t end_addr;
 public:
 	std::shared_ptr<DataItem> AppendItem(std::shared_ptr<DataItem> item);
 	std::shared_ptr<DataItem> NewExternalSymbol(const std::string &name);
+	data_off_t CalcOffset(data_off_t base);
+	void DoRelocate();
 	void ProvideSymbol(const std::string &name);
 	void Dump();
+	static void ReduceSymbols(const std::vector<DataBuffer *> buffers);
 };
 
 
@@ -218,6 +224,12 @@ private:
 	void GenerateCodeForASTNode(std::shared_ptr<ASTNode> node);
 	void GenerateCodeForMainMethod(std::shared_ptr<ASTMainClass> maincls);
 	void GenerateCodeForClassMethod(ClassInfoItem &cls, MethodDeclItem &method);
+
+	void GenerateVtblForClass(ClassInfoItem &cls);
+	void AddImportEntry(const std::string &dllname, const std::vector<std::string> &funclist);
+
+	void Link();
+
 public:
 	virtual void Visit(ASTStatement *node, int level) override;
 	virtual void Visit(ASTExpression *node, int level) override;
@@ -244,4 +256,5 @@ public:
 public:
 	static CodeGen *Instance();
 	void GenerateCode();
+	void DumpSections();
 };

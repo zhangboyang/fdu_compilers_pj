@@ -34,6 +34,7 @@ private:
 public:
 	int GetChar();
 	void ReportError(const yyltype &loc, const std::string &msg);
+	void ReportError(const std::string &msg);
 	static MiniJavaC *Instance();
 
 	void OpenFile(const char *filename);
