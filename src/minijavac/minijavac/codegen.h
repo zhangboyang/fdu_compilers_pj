@@ -140,6 +140,7 @@ public:
 	enum RelocType {
 		RELOC_ABS32,
 		RELOC_REL32,
+		RELOC_RVA32,
 	};
 	data_off_t off;
 	RelocType type;
@@ -183,7 +184,7 @@ public:
 	std::shared_ptr<DataItem> AppendItem(std::shared_ptr<DataItem> item);
 	std::shared_ptr<DataItem> NewExternalSymbol(const std::string &name);
 	data_off_t CalcOffset(data_off_t base);
-	void DoRelocate();
+	void DoRelocate(data_off_t rva_base);
 	void ProvideSymbol(const std::string &name);
 	void Dump();
 	static void ReduceSymbols(const std::vector<DataBuffer *> buffers);
@@ -220,14 +221,20 @@ private:
 	// return < <0,0>, VT_UNKNOWN > if not found
 	std::pair<std::pair<data_off_t, data_off_t>, TypeInfo> GetMemberVar(const std::string &name);
 
+	// dllinfo
+	std::vector<std::pair<std::string, std::vector<std::string> > > dllinfo; // <dllname, funclist>
+
 	CodeGen();
 	void GenerateCodeForASTNode(std::shared_ptr<ASTNode> node);
 	void GenerateCodeForMainMethod(std::shared_ptr<ASTMainClass> maincls);
 	void GenerateCodeForClassMethod(ClassInfoItem &cls, MethodDeclItem &method);
 
 	void GenerateVtblForClass(ClassInfoItem &cls);
-	void AddImportEntry(const std::string &dllname, const std::vector<std::string> &funclist);
 
+	void MakeIAT();
+	void AddImportEntry(const std::string &dllname, const std::vector<std::string> &funclist);
+	void MakeEXE();
+	
 	void Link();
 
 public:

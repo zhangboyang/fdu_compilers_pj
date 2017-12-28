@@ -198,7 +198,7 @@ data_off_t DataBuffer::CalcOffset(data_off_t base)
 	}
 	return end_addr = base;
 }
-void DataBuffer::DoRelocate()
+void DataBuffer::DoRelocate(data_off_t rva_base)
 {
 	for (auto &item: list) {
 		for (auto &r: item->reloc) {
@@ -215,6 +215,9 @@ void DataBuffer::DoRelocate()
 					break;
 				case RelocInfo::RELOC_REL32:
 					newdata = target - (addr + olddata);
+					break;
+				case RelocInfo::RELOC_RVA32:
+					newdata = target - rva_base;
 					break;
 				default: panic();
 			}
@@ -733,7 +736,7 @@ void CodeGen::GenerateCodeForMainMethod(std::shared_ptr<ASTMainClass> maincls)
 {
 	cur_cls = nullptr;
 	cur_method = nullptr;
-	code.ProvideSymbol("entry");
+	code.ProvideSymbol("$ENTRY");
 	GenerateCodeForASTNode(maincls->GetASTStatement());
 	code.AppendItem(DataItem::New()->AddU8({0x6A, 0x00})->SetComment("PUSH 0"));
 	code.AppendItem(DataItem::New()->AddU8({0xE8})->AddRel32(0x5, RelocInfo::RELOC_REL32, code.NewExternalSymbol("IMP$msvcrt.exit"))->SetComment("CALL exit"));
@@ -776,16 +779,72 @@ void CodeGen::GenerateVtblForClass(ClassInfoItem &cls)
 }
 void CodeGen::AddImportEntry(const std::string &dllname, const std::vector<std::string> &funclist)
 {
-	// FIXME
+	dllinfo.push_back(std::make_pair(dllname, funclist));
 	for (auto &func: funclist) {
 		code.ProvideSymbol("IMP$" + dllname + "." + func);
-		code.AppendItem(DataItem::New()->AddU8({0xFF, 0x25})->AddRel32(0, RelocInfo::RELOC_ABS32, code.NewExternalSymbol("IAT$" + dllname + "." + func))->SetComment(dllname + "." + func));
+		code.AppendItem(DataItem::New()->AddU8({0xFF, 0x25})->AddRel32(0, RelocInfo::RELOC_ABS32, code.NewExternalSymbol("IAT.FIRSTTHUNK$" + dllname + "." + func))->SetComment(dllname + "." + func));
 	}
+}
+void CodeGen::MakeIAT()
+{
+	rodata.AppendItem(DataItem::New()->SetAlign(4));
+	
+	// make FirstThunk
+	for (auto &dllitem: dllinfo) {
+		std::string &dllname = dllitem.first;
+		rodata.ProvideSymbol("IAT.FIRSTTHUNK.DLL$" + dllname);
+		for (auto &func: dllitem.second) {
+			rodata.ProvideSymbol("IAT.FIRSTTHUNK$" + dllname + "." + func);
+			rodata.AppendItem(DataItem::New()->AddRel32(0, RelocInfo::RELOC_RVA32, rodata.NewExternalSymbol("IAT.HINTNAME$" + dllname + "." + func))->SetComment(dllname + "." + func));
+		}
+	}
+
+	// make IMAGE_IMPORT_DESCRIPTOR
+	rodata.ProvideSymbol("$IAT");
+	for (auto &dllitem: dllinfo) {
+		std::string &dllname = dllitem.first;
+		rodata.AppendItem(DataItem::New()->AddRel32(0, RelocInfo::RELOC_RVA32, rodata.NewExternalSymbol("IAT.HINTNAME.DLL$" + dllname))->SetComment("Characteristics"));
+		rodata.AppendItem(DataItem::New()->AddU32({0})->SetComment("TimeDateStamp"));
+		rodata.AppendItem(DataItem::New()->AddU32({0})->SetComment("ForwarderChain"));
+		rodata.AppendItem(DataItem::New()->AddRel32(0, RelocInfo::RELOC_RVA32, rodata.NewExternalSymbol("IAT.NAME.DLL$" + dllname))->SetComment("Name"));
+		rodata.AppendItem(DataItem::New()->AddRel32(0, RelocInfo::RELOC_RVA32, rodata.NewExternalSymbol("IAT.FIRSTTHUNK.DLL$" + dllname))->SetComment("FirstThunk"));
+	}
+	rodata.AppendItem(DataItem::New()->AddU32({0, 0, 0, 0, 0}));
+
+	// make HINTNAME and IMAGE_IMPORT_BY_NAME and DLL NAME
+	for (auto &dllitem: dllinfo) {
+		std::string &dllname = dllitem.first;
+		rodata.AppendItem(DataItem::New()->SetAlign(4));
+
+		// HINTNAME
+		rodata.ProvideSymbol("IAT.HINTNAME.DLL$" + dllname);
+		for (auto &func: dllitem.second) {
+			rodata.ProvideSymbol("IAT.HINTNAME$" + dllname + "." + func);
+			rodata.AppendItem(DataItem::New()->AddRel32(0, RelocInfo::RELOC_RVA32, rodata.NewExternalSymbol("IAT.IMPBYNAME$" + dllname + "." + func))->SetComment(dllname + "." + func));
+		}
+		rodata.AppendItem(DataItem::New()->AddU32({0}));
+
+		// IMAGE_IMPORT_BY_NAME
+		for (auto &func: dllitem.second) {
+			rodata.ProvideSymbol("IAT.IMPBYNAME$" + dllname + "." + func);
+			rodata.AppendItem(DataItem::New()->SetAlign(2)->AddU8({0, 0}));
+			rodata.AppendItem(DataItem::New()->AddString(func.c_str()));
+		}
+
+		// DLL NAME
+		rodata.ProvideSymbol("IAT.NAME.DLL$" + dllname);
+		rodata.AppendItem(DataItem::New()->SetAlign(0x10)->AddString((dllname + ".dll").c_str()));
+	}
+}
+void CodeGen::MakeEXE()
+{
+	
 }
 void CodeGen::Link()
 {
-	data_off_t base = 0x00400000;
+	const data_off_t pe_base = 0x00400000;
 	const data_off_t sect_align = 0x1000;
+	data_off_t base = pe_base + 0x1000;
 
 	std::vector<DataBuffer *> sections{&code, &rodata, &data};
 
@@ -800,8 +859,11 @@ void CodeGen::Link()
 
 	printf(" [*] Relocating ...\n");
 	for (auto &sect: sections) {
-		sect->DoRelocate();
+		sect->DoRelocate(pe_base);
 	}
+
+	printf(" [*] Making EXE ...\n");
+	MakeEXE();
 }
 
 void CodeGen::DumpSections()
@@ -836,6 +898,8 @@ void CodeGen::GenerateCode()
 
 	printf("[*] Adding DLL import table ...\n");
 	AddImportEntry("msvcrt", {"printf", "calloc", "exit"});
+	MakeIAT();
+
 
 	printf("[*] Linking ...\n");
 	Link();
