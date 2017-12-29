@@ -662,8 +662,8 @@ void CodeGen::Visit(ASTFunctionCallExpression *node, int level)
 	}
 
 	if (marglist && marglist->size() == v.arglist.size()) {
-		for (auto it = marglist->rbegin(); it != marglist->rend(); it++) {	
-			PopAndCheckType((*(v.arglist.rbegin() + (it - marglist->rbegin())))->loc, it->decl.type);
+		for (auto it = marglist->begin(); it != marglist->end(); it++) {	
+			PopAndCheckType((*(v.arglist.rbegin() + (it - marglist->begin())))->loc, it->decl.type);
 		}
 		code.AppendItem(DataItem::New()->AddU8({0x8B, 0x04, 0xE4})->SetComment("MOV EAX,[ESP] (eax=this)"));
 		code.AppendItem(DataItem::New()->AddU8({0x8B, 0x00})->SetComment("MOV EAX,[EAX] (eax=vfptr)"));
