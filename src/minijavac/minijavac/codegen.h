@@ -37,6 +37,7 @@ public:
 public:
 	bool operator == (const TypeInfo &r) const;
 	bool operator != (const TypeInfo &r) const;
+	bool CanCastTo(const TypeInfo &r) const;
 	std::string GetName();
 };
 
@@ -71,6 +72,7 @@ public:
 	TypeInfo rettype;
 	std::string name;
 	VarDeclList arg;
+	bool operator == (const MethodDecl &r) const;
 };
 
 class MethodDeclItem {
@@ -78,6 +80,7 @@ public:
 	MethodDecl decl;
 	data_off_t off;
 	VarDeclList localvar;
+	std::string clsname;
 	std::shared_ptr<ASTMethodDeclaration> ptr;
 public:
 	const std::string &GetName() const;
@@ -97,7 +100,7 @@ public:
 	std::string name;
 	VarDeclList var;
 	MethodDeclList method;
-	std::shared_ptr<ASTClassDeclaration> ptr;
+	std::string base;
 public:
 	const std::string &GetName() const;
 	void Dump();
@@ -112,12 +115,15 @@ public:
 
 class VarDeclListVisitor : public ASTNodeVisitor {
 public:
+	VarDeclListVisitor(VarDeclList base);
 	VarDeclList list;
 	virtual void Visit(ASTVarDeclaration *node, int level) override;
 };
 
 class MethodDeclListVisitor : public ASTNodeVisitor {
+	std::string clsname;
 public:
+	MethodDeclListVisitor(MethodDeclList base, const std::string &clsname);
 	MethodDeclList list;
 	virtual void Visit(ASTMethodDeclaration *node, int level) override;
 };
@@ -126,6 +132,7 @@ class ClassInfoVisitor : public ASTNodeVisitor {
 public:
 	ClassInfoList list;
 	virtual void Visit(ASTClassDeclaration *node, int level) override;
+	virtual void Visit(ASTDerivedClassDeclaration *node, int level) override;
 };
 
 
@@ -204,12 +211,12 @@ class CodeGen : public ASTNodeVisitor {
 	static const unsigned PE_SECTIONALIGN = 0x1000;
 	static const unsigned PE_CODEBASE = 0x1000;
 	static const unsigned PE_FILEALIGN = 0x1000;
-public:
+private:
+	std::vector<TypeInfo> varstack;
 	ClassInfoItem *cur_cls;
 	MethodDeclItem *cur_method;
 	DataBuffer code, rodata, data;
-private:
-	std::vector<TypeInfo> varstack;
+public:
 	ClassInfoList clsinfo;
 private:
 	void AssertTypeEmpty(const yyltype &loc);

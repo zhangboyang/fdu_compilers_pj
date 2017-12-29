@@ -20,9 +20,11 @@ int main(int argc, char *argv[])
 	//MiniJavaC::Instance()->LoadFile("../../../tests/BubbleSort.java");
 	//MiniJavaC::Instance()->LoadFile("../../../tests/Factorial.java");
 	//MiniJavaC::Instance()->LoadFile("../../../tests/LinearSearch.java");
-	MiniJavaC::Instance()->LoadFile("../../../tests/LinkedList.java");
+	//MiniJavaC::Instance()->LoadFile("../../../tests/LinkedList.java");
 	//MiniJavaC::Instance()->LoadFile("../../../tests/QuickSort.java");
-	//MiniJavaC::Instance()->LoadFile("../../../tests/TreeVisitor.java");
+	MiniJavaC::Instance()->LoadFile("../../../tests/TreeVisitor.java");
+
+	MiniJavaC::Instance()->LoadFile("../../../tests/myDerivedClassTest.java");
 	#else
 
 	if (argc >= 2) {

@@ -297,6 +297,24 @@ std::shared_ptr<ASTMethodDeclarationList> ASTClassDeclaration::GetASTMethodDecla
 	return std::dynamic_pointer_cast<ASTMethodDeclarationList>(ch[2]);
 }
 
+std::shared_ptr<ASTIdentifier> ASTDerivedClassDeclaration::GetASTIdentifier()
+{
+	return std::dynamic_pointer_cast<ASTIdentifier>(ch[0]);
+}
+std::shared_ptr<ASTIdentifier> ASTDerivedClassDeclaration::GetBaseASTIdentifier()
+{
+	return std::dynamic_pointer_cast<ASTIdentifier>(ch[1]);
+}
+std::shared_ptr<ASTVarDeclarationList> ASTDerivedClassDeclaration::GetASTVarDeclarationList()
+{
+	return std::dynamic_pointer_cast<ASTVarDeclarationList>(ch[2]);
+}
+std::shared_ptr<ASTMethodDeclarationList> ASTDerivedClassDeclaration::GetASTMethodDeclarationList()
+{
+	return std::dynamic_pointer_cast<ASTMethodDeclarationList>(ch[3]);
+}
+
+
 std::shared_ptr<ASTType> ASTVarDeclaration::GetASTType()
 {
 	return std::dynamic_pointer_cast<ASTType>(ch[0]);
@@ -336,22 +354,22 @@ std::shared_ptr<ASTIdentifier> ASTNewExpression::GetASTIdentifier()
 }
 
 
-MethodDeclList ASTMethodDeclarationList::GetMethodDeclList()
+MethodDeclList ASTMethodDeclarationList::GetMethodDeclList(MethodDeclList base, const std::string &clsname)
 {
-	MethodDeclListVisitor v;
+	MethodDeclListVisitor v(base, clsname);
 	ASTNode::Accept(v);
 	return std::move(v.list);
 }
 
-VarDeclList ASTArgDeclarationList1::GetVarDeclList()
+VarDeclList ASTArgDeclarationList1::GetVarDeclList(VarDeclList base)
 {
-	VarDeclListVisitor v;
+	VarDeclListVisitor v(base);
 	ASTNode::Accept(v);
 	return std::move(v.list);
 }
-VarDeclList ASTVarDeclarationList::GetVarDeclList()
+VarDeclList ASTVarDeclarationList::GetVarDeclList(VarDeclList base)
 {
-	VarDeclListVisitor v;
+	VarDeclListVisitor v(base);
 	ASTNode::Accept(v);
 	return std::move(v.list);
 }
@@ -381,6 +399,7 @@ void ASTNodeVisitor::Visit(ASTNode *node, int level)
 MAKE_VISIT(ASTNode, ASTType)
 
 MAKE_VISIT(ASTNode, ASTClassDeclaration)
+MAKE_VISIT(ASTNode, ASTDerivedClassDeclaration)
 MAKE_VISIT(ASTNode, ASTVarDeclaration)
 MAKE_VISIT(ASTNode, ASTMethodDeclaration)
 
@@ -419,6 +438,7 @@ MAKE_ACCEPT(ASTNode)
 MAKE_ACCEPT(ASTType)
 
 MAKE_ACCEPT(ASTClassDeclaration)
+MAKE_ACCEPT(ASTDerivedClassDeclaration)
 MAKE_ACCEPT(ASTVarDeclaration)
 MAKE_ACCEPT(ASTMethodDeclaration)
 

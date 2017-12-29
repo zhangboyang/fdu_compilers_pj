@@ -30,6 +30,7 @@
 %token TOK_PRINTLN
 %token TOK_RETURN
 %token TOK_WHILE
+%token TOK_EXTENDS
 
 %token TOK_THIS
 %token TOK_NEW
@@ -80,6 +81,8 @@ MainClass
 ClassDeclaration
   : TOK_CLASS Identifier TOK_LB VarDeclarationList MethodDeclarationList TOK_RB
     { $$ = new ASTClassDeclaration(@$, { $2, $4, $5 }); }
+  | TOK_CLASS Identifier TOK_EXTENDS Identifier TOK_LB VarDeclarationList MethodDeclarationList TOK_RB
+    { $$ = new ASTDerivedClassDeclaration(@$, { $2, $4, $6, $7 }); }
 ;
 
 VarDeclarationList

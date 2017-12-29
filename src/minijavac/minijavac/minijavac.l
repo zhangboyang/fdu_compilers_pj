@@ -52,6 +52,7 @@ int yycolumn;
 "length"		{ return TOK_LENGTH; }
 "return"		{ return TOK_RETURN; }
 "while"			{ return TOK_WHILE; }
+"extends"		{ return TOK_EXTENDS; }
 "System.out.println"	{ return TOK_PRINTLN; }
 "String"		{ return TOK_STRING; }
 

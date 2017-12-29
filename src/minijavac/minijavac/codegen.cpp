@@ -1,6 +1,17 @@
 #include "common.h"
 #include "minijavac.tab.h"
 
+bool MethodDecl::operator == (const MethodDecl &r) const
+{
+	if (name != r.name) return false;
+	if (rettype != r.rettype) return false;
+	if (arg.size() != r.arg.size()) return false;
+	for (size_t i = 0; i < arg.size(); i++) {
+		if (arg[i].decl.type != r.arg[i].decl.type) return false;
+	}
+	return true;
+}
+
 const std::string &VarDeclItem::GetName() const
 {
 	return this->decl.name;
@@ -26,6 +37,9 @@ void VarDeclList::Dump()
 	printf("   var  total %08X\n", GetTotalSize());
 }
 
+VarDeclListVisitor::VarDeclListVisitor(VarDeclList base) : list(base)
+{
+}
 void VarDeclListVisitor::Visit(ASTVarDeclaration *node, int level)
 {
 	if (!list.Append(VarDeclItem {
@@ -60,19 +74,39 @@ void MethodDeclList::Dump()
 	}
 }
 
+MethodDeclListVisitor::MethodDeclListVisitor(MethodDeclList base, const std::string &clsname) : list(base), clsname(clsname)
+{
+}
 void MethodDeclListVisitor::Visit(ASTMethodDeclaration *node, int level)
 {
-	if (!list.Append(MethodDeclItem {
+	MethodDeclItem new_item {
 		MethodDecl {
 			node->GetASTType()->GetTypeInfo(),
 			node->GetASTIdentifier()->id,
-			node->GetASTArgDeclarationList1()->GetVarDeclList(),
+			node->GetASTArgDeclarationList1()->GetVarDeclList(VarDeclList()),
 		},
 		list.GetTotalSize(),
-		node->GetASTVarDeclarationList()->GetVarDeclList(),
+		node->GetASTVarDeclarationList()->GetVarDeclList(VarDeclList()),
+		clsname,
 		std::dynamic_pointer_cast<ASTMethodDeclaration>(node->GetSharedPtr()),
-	})) {
-		MiniJavaC::Instance()->ReportError(node->GetASTIdentifier()->loc, "duplicate method");
+	};
+
+
+	auto it = list.Find(new_item.GetName());
+	if (it == list.end()) {
+		list.Append(new_item);
+	} else {
+		if (it->clsname != new_item.clsname) {
+			// override method
+			if (it->decl == new_item.decl) {
+				new_item.off = it->off;
+				*it = new_item;
+			} else {
+				MiniJavaC::Instance()->ReportError(node->GetASTIdentifier()->loc, "different method prototype");
+			}
+		} else {
+			MiniJavaC::Instance()->ReportError(node->GetASTIdentifier()->loc, "duplicate method");
+		}
 	}
 
 	for (auto &v: list.back().decl.arg) {
@@ -106,13 +140,30 @@ void ClassInfoVisitor::Visit(ASTClassDeclaration *node, int level)
 {
 	if (!list.Append(ClassInfoItem{
 		node->GetASTIdentifier()->id,
-		node->GetASTVarDeclarationList()->GetVarDeclList(),
-		node->GetASTMethodDeclarationList()->GetMethodDeclList(),
-		std::dynamic_pointer_cast<ASTClassDeclaration>(node->GetSharedPtr()),
+		node->GetASTVarDeclarationList()->GetVarDeclList(VarDeclList()),
+		node->GetASTMethodDeclarationList()->GetMethodDeclList(MethodDeclList(), node->GetASTIdentifier()->id),
+		std::string(),
 	})) {
 		MiniJavaC::Instance()->ReportError(node->GetASTIdentifier()->loc, "duplicate class");
 	}
 }
+void ClassInfoVisitor::Visit(ASTDerivedClassDeclaration *node, int level)
+{
+	auto it = list.Find(node->GetBaseASTIdentifier()->id);
+	if (it != list.end()) {
+		if (!list.Append(ClassInfoItem{
+			node->GetASTIdentifier()->id,
+			node->GetASTVarDeclarationList()->GetVarDeclList(it->var),
+			node->GetASTMethodDeclarationList()->GetMethodDeclList(it->method, node->GetASTIdentifier()->id),
+			it->GetName(),
+		})) {
+			MiniJavaC::Instance()->ReportError(node->GetASTIdentifier()->loc, "duplicate class");
+		}
+	} else {
+		MiniJavaC::Instance()->ReportError(node->GetBaseASTIdentifier()->loc, "no such class");
+	}
+}
+
 
 // DataItem / DataBuffer
 DataItem::DataItem()
@@ -338,6 +389,20 @@ bool TypeInfo::operator != (const TypeInfo &r) const
 {
 	return ! operator == (r);
 }
+bool TypeInfo::CanCastTo(const TypeInfo &r) const
+{
+	if (type != ASTType::VT_CLASS) return false;
+	if (r.type != ASTType::VT_CLASS) return false;
+	std::string curcls = clsname;
+	while (1) {
+		auto &clsinfo = CodeGen::Instance()->clsinfo;
+		if (curcls == r.clsname) return true;
+		if (curcls == "") return false;
+		auto it = clsinfo.Find(curcls);
+		if (it == clsinfo.end()) return false;
+		curcls = it->base;
+	}
+}
 
 CodeGen::CodeGen()
 {
@@ -369,7 +434,7 @@ void CodeGen::PopAndCheckType(const yyltype &loc, TypeInfo tinfo)
 	}
 	TypeInfo &pinfo = varstack.back();
 	
-	if (tinfo != pinfo) {
+	if (tinfo != pinfo && !pinfo.CanCastTo(tinfo)) {
 		std::string msg = "type mismatch: " + pinfo.GetName() + ", expected " + tinfo.GetName();
 		MiniJavaC::Instance()->ReportError(loc, msg);
 	}
@@ -801,7 +866,7 @@ void CodeGen::GenerateVtblForClass(ClassInfoItem &cls)
 	rodata.ProvideSymbol(cls.GetName() + ".$vfptr");
 	rodata.AppendItem(DataItem::New()->SetAlign(4));
 	for (auto &method: cls.method) {
-		rodata.AppendItem(DataItem::New()->AddRel32(0, RelocInfo::RELOC_ABS32, rodata.NewExternalSymbol(cls.GetName() + "." + method.GetName())));
+		rodata.AppendItem(DataItem::New()->AddRel32(0, RelocInfo::RELOC_ABS32, rodata.NewExternalSymbol(method.clsname + "." + method.GetName())));
 	}
 }
 void CodeGen::AddImportEntry(const std::string &dllname, const std::vector<std::string> &funclist)
@@ -1017,6 +1082,7 @@ void CodeGen::GenerateCode()
 {
 	printf("[*] Generating type information ...\n");
 	clsinfo = MiniJavaC::Instance()->goal->GetClassInfoList();
+	//clsinfo.Dump();
 
 	printf("[*] Generating code ...\n");
 
@@ -1026,8 +1092,10 @@ void CodeGen::GenerateCode()
 	for (auto &cls: clsinfo) {
 		printf(" [*] Generating code for class %s ...\n", cls.GetName().c_str());
 		for (auto &method: cls.method) {
-			printf("  [*] Generating code for %s::%s() ...\n", cls.GetName().c_str(), method.GetName().c_str());
-			GenerateCodeForClassMethod(cls, method);
+			if (method.clsname == cls.GetName()) {
+				printf("  [*] Generating code for %s::%s() ...\n", cls.GetName().c_str(), method.GetName().c_str());
+				GenerateCodeForClassMethod(cls, method);
+			}
 		}
 	}
 
