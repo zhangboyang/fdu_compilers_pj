@@ -292,6 +292,8 @@ __pycache__/
 *.flex.cpp
 *.tab.cpp
 *.tab.h
-src/minijavac/minijavac/out.*
-src/minijavac/minijavac/test.*
-src/minijavac/minijavac/asm.*
+out.*
+test.*
+*.class
+*.out
+*.diff

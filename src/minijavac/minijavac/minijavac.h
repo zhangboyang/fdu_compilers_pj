@@ -25,9 +25,12 @@ class ASTGoal;
 class MiniJavaC {
 	std::vector<std::string> lines;
 	unsigned ln, col;
+	
 
 public:
 	std::shared_ptr<ASTGoal> goal;
+	bool src_loaded = false;
+	int error_count = 0;
 
 private:
 	MiniJavaC();
@@ -37,7 +40,7 @@ public:
 	void ReportError(const std::string &msg);
 	static MiniJavaC *Instance();
 
-	void OpenFile(const char *filename);
+	void LoadFile(const char *filename);
 	void DumpContent(const yyltype &loc, FILE *fp);
 	void DumpContent(const yyltype &loc);
 	void ParseAST();

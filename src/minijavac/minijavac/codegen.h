@@ -187,7 +187,7 @@ public:
 	data_off_t CalcOffset(data_off_t base);
 	void DoRelocate();
 	void ProvideSymbol(const std::string &name);
-	void Dump();
+	void Dump(FILE *fp);
 	static void ReduceSymbols(const std::vector<DataBuffer *> buffers);
 	data_off_t GetSymbol(const std::string &symname);
 	std::vector<uint8_t> GetContent();
@@ -274,6 +274,6 @@ public:
 public:
 	static CodeGen *Instance();
 	void GenerateCode();
-	void DumpSections();
+	void DumpSections(const char *outfile);
 	static data_off_t ToRVA(data_off_t addr);
 };

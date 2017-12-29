@@ -280,13 +280,13 @@ void DataBuffer::ReduceSymbols(const std::vector<DataBuffer *> buffers)
 	}
 }
 
-void DataBuffer::Dump()
+void DataBuffer::Dump(FILE *fp)
 {
 	for (auto lstit = list.begin(); lstit != list.end(); lstit++) {
 		auto &item = *lstit;
 		for (auto &p: sym) {
 			if (p.second.second == lstit) {
-				printf(" <%s>:\n", p.first.c_str());
+				fprintf(fp, " <%s>:\n", p.first.c_str());
 			}
 		}
 
@@ -294,23 +294,23 @@ void DataBuffer::Dump()
 
 		std::string bytesdump;
 		for (auto &b: item->bytes) {
-			char buf[4]; sprintf(buf, "%02X ", (unsigned) b);
+			char buf[5]; sprintf(buf, "%02X ", (unsigned) b);
 			bytesdump += std::string(buf);
 		}
-		printf("  %08X: %-30s %s\n", (unsigned) item->off, bytesdump.c_str(), item->comment.c_str());
+		fprintf(fp, "  %08X: %-30s %s\n", (unsigned) item->off, bytesdump.c_str(), item->comment.c_str());
 
 		// print reloc info
 		if (!item->reloc.empty()) {
-			printf("    reloc ");
+			fprintf(fp, "    reloc ");
 			for (auto &r: item->reloc) {
 				for (auto &p: extsym) { // FIXME: O(n^2)
 					if (r.target == p.second.first) {
-						printf("(+%02X %s)", r.off, p.first.c_str());
+						fprintf(fp, "(+%02X %s)", r.off, p.first.c_str());
 					}
 				}
-				printf(":%08X ", r.target->off);
+				fprintf(fp, ":%08X ", r.target->off);
 			}
-			printf("\n");
+			fprintf(fp, "\n");
 		}
 	}
 }
@@ -986,7 +986,7 @@ void CodeGen::Link()
 	printf(" [*] Processing symbols ...\n");
 	DataBuffer::ReduceSymbols(sections);
 
-	printf(" [*] Calc address ...\n");
+	printf(" [*] Calculating address ...\n");
 	for (auto &sect: sections) {
 		base = sect->CalcOffset(base);
 		base = ROUNDUP(base, PE_SECTIONALIGN);
@@ -1001,25 +1001,30 @@ void CodeGen::Link()
 	MakeEXE();
 }
 
-void CodeGen::DumpSections()
+void CodeGen::DumpSections(const char *outfile)
 {
-	printf(".code:\n");
-	code.Dump();
-	printf(".rodata:\n");
-	rodata.Dump();
-	printf(".data:\n");
-	data.Dump();
+	FILE *fp;
+	if (outfile) fp = fopen(outfile, "w"); else fp = stdout;
+	fprintf(fp, ".code:\n");
+	code.Dump(fp);
+	fprintf(fp, ".rodata:\n");
+	rodata.Dump(fp);
+	fprintf(fp, ".data:\n");
+	data.Dump(fp);
+	if (outfile) fclose(fp);
 }
 void CodeGen::GenerateCode()
 {
 	printf("[*] Generating type information ...\n");
 	clsinfo = MiniJavaC::Instance()->goal->GetClassInfoList();
 
-	printf("[*] Generating code for main() ...\n");
+	printf("[*] Generating code ...\n");
+
+	printf(" [*] Generating code for main() ...\n");
 	GenerateCodeForMainMethod(MiniJavaC::Instance()->goal->GetASTMainClass());
 
 	for (auto &cls: clsinfo) {
-		printf("[*] Generating code for class %s ...\n", cls.GetName().c_str());
+		printf(" [*] Generating code for class %s ...\n", cls.GetName().c_str());
 		for (auto &method: cls.method) {
 			printf("  [*] Generating code for %s::%s() ...\n", cls.GetName().c_str(), method.GetName().c_str());
 			GenerateCodeForClassMethod(cls, method);
@@ -1027,7 +1032,7 @@ void CodeGen::GenerateCode()
 	}
 
 	for (auto &cls: clsinfo) {
-		printf("[*] Generating virtual function table for class %s ...\n", cls.GetName().c_str());
+		printf(" [*] Generating virtual function table for class %s ...\n", cls.GetName().c_str());
 		GenerateVtblForClass(cls);
 	}
 
@@ -1038,7 +1043,4 @@ void CodeGen::GenerateCode()
 
 	printf("[*] Linking ...\n");
 	Link();
-
-
-	DumpSections();
 }

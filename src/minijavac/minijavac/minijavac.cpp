@@ -10,14 +10,20 @@ MiniJavaC *MiniJavaC::Instance()
 	return &inst;
 }
 
-void MiniJavaC::OpenFile(const char *filename)
+void MiniJavaC::LoadFile(const char *filename)
 {
+	printf("[*] Loading %s ...\n", filename);
+
+	FILE *fp = fopen(filename, "r");
+	if (!fp) {
+		ReportError("Can't open input file.");
+		return;
+	}
+
+	int ch;
+
 	lines.clear();
 	lines.push_back(std::string());
-	
-	FILE *fp = fopen(filename, "r");
-	assert(fp);
-	int ch;
 
 	while ((ch = fgetc(fp)) != EOF) {
 		lines.back().push_back(ch);
@@ -30,6 +36,7 @@ void MiniJavaC::OpenFile(const char *filename)
 
 	ln = col = 0;
 
+	src_loaded = true;
 /*	for (auto &line : lines) {
 		printf("%s", line.c_str());
 	}*/
@@ -95,6 +102,7 @@ void MiniJavaC::ReportError(const std::string &msg)
 {
 	printf("ERROR : %s\n", msg.c_str());
 	printf("\n");
+	error_count++;
 }
 void MiniJavaC::ReportError(const yyltype &loc, const std::string &msg)
 {

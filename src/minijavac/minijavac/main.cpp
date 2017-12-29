@@ -1,7 +1,7 @@
 #include "common.h"
 
 
-int main()
+int main(int argc, char *argv[])
 {
 	//freopen("out.txt", "w", stdout);
 
@@ -9,29 +9,50 @@ int main()
 	_CrtSetDbgFlag ( _CRTDBG_ALLOC_MEM_DF | _CRTDBG_LEAK_CHECK_DF );  
 	#endif
 
-	MiniJavaC::Instance()->OpenFile("test.java");
+	#ifdef _DEBUG
+	//MiniJavaC::Instance()->LoadFile("test.java");
 
 
-	//MiniJavaC::Instance()->OpenFile("../../../mytests/duplicate.java");
+	//MiniJavaC::Instance()->LoadFile("../../../mytests/duplicate.java");
 
-	//MiniJavaC::Instance()->OpenFile("../../../tests/BinarySearch.java");
-	//MiniJavaC::Instance()->OpenFile("../../../tests/BinaryTree.java");
-	//MiniJavaC::Instance()->OpenFile("../../../tests/BubbleSort.java");
-	MiniJavaC::Instance()->OpenFile("../../../tests/Factorial.java");
-	//MiniJavaC::Instance()->OpenFile("../../../tests/LinearSearch.java");
-	//MiniJavaC::Instance()->OpenFile("../../../tests/LinkedList.java");
-	//MiniJavaC::Instance()->OpenFile("../../../tests/QuickSort.java");
-	//MiniJavaC::Instance()->OpenFile("../../../tests/TreeVisitor.java");
+	//MiniJavaC::Instance()->LoadFile("../../../tests/BinarySearch.java");
+	//MiniJavaC::Instance()->LoadFile("../../../tests/BinaryTree.java");
+	//MiniJavaC::Instance()->LoadFile("../../../tests/BubbleSort.java");
+	//MiniJavaC::Instance()->LoadFile("../../../tests/Factorial.java");
+	//MiniJavaC::Instance()->LoadFile("../../../tests/LinearSearch.java");
+	MiniJavaC::Instance()->LoadFile("../../../tests/LinkedList.java");
+	//MiniJavaC::Instance()->LoadFile("../../../tests/QuickSort.java");
+	//MiniJavaC::Instance()->LoadFile("../../../tests/TreeVisitor.java");
+	#else
 
-	MiniJavaC::Instance()->ParseAST();
-	if (MiniJavaC::Instance()->goal) {
-	
-		MiniJavaC::Instance()->DumpASTToTextFile("out.txt", true);
-	
-		MiniJavaC::Instance()->DumpASTToJSON("out.json"); 
-
-		CodeGen::Instance()->GenerateCode();
+	if (argc >= 2) {
+		MiniJavaC::Instance()->LoadFile(argv[1]);
 	}
+	
+	#endif
+
+
+
+	if (MiniJavaC::Instance()->src_loaded) {
+		MiniJavaC::Instance()->ParseAST();
+		if (MiniJavaC::Instance()->goal) {
+			MiniJavaC::Instance()->DumpASTToTextFile("out.ast.txt", true);
+			MiniJavaC::Instance()->DumpASTToJSON("out.ast.json"); 
+			CodeGen::Instance()->GenerateCode();
+			CodeGen::Instance()->DumpSections("out.asm.txt");
+		}
+	}
+
+	int err_cnt = MiniJavaC::Instance()->error_count;
+	if (err_cnt) {
+		printf("\n%d error(s) occured, compile failed.\n\n", err_cnt);
+	} else {
+		printf("\nCompile successful.\n\n");
+	}
+
+	#ifdef _DEBUG
 	system("pause");
-	return 0;
+	#endif
+
+	return !!err_cnt;
 }
