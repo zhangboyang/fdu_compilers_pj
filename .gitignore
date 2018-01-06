@@ -297,3 +297,4 @@ test.*
 *.class
 *.out
 *.diff
+*.output
