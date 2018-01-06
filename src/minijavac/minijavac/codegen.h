@@ -61,7 +61,7 @@ public:
 
 class VarDeclList : public NameIndexedList<VarDeclItem> {
 public:
-	void Dump();
+	void Dump(FILE *fp);
 	data_off_t GetTotalSize();
 };
 
@@ -88,7 +88,7 @@ public:
 
 class MethodDeclList : public NameIndexedList<MethodDeclItem> {
 public:
-	void Dump();
+	void Dump(FILE *fp);
 	data_off_t GetTotalSize();
 };
 
@@ -103,12 +103,12 @@ public:
 	std::string base;
 public:
 	const std::string &GetName() const;
-	void Dump();
+	void Dump(FILE *fp);
 };
 
 class ClassInfoList : public NameIndexedList<ClassInfoItem> {
 public:
-	void Dump();
+	void Dump(FILE *fp);
 };
 
 // Visitor
@@ -282,5 +282,6 @@ public:
 	static CodeGen *Instance();
 	void GenerateCode();
 	void DumpSections(const char *outfile);
+	void DumpVars(const char *outfile);
 	static data_off_t ToRVA(data_off_t addr);
 };

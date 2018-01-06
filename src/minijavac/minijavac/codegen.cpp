@@ -28,13 +28,17 @@ data_off_t VarDeclList::GetTotalSize()
 	assert(ret % 4 == 0);
 	return ret;
 }
-void VarDeclList::Dump()
+void VarDeclList::Dump(FILE *fp)
 {
-	printf("   var  %-8s %-8s %-10s %s\n", "offset", "size", "type", "name");
-	for (auto &item: *this) {
-		printf("   var  %08X %08X %-10s %s\n", (unsigned) item.off, (unsigned) item.size, ASTType::GetTypeName(item.decl.type.type), item.decl.name.c_str());
+	if (!this->empty()) {
+		fprintf(fp, "   %-8s %-8s %-20s %s\n", "offset", "size", "type", "name");
+		for (auto &item: *this) {
+			fprintf(fp, "   %08X %08X %-20s %s\n", (unsigned) item.off, (unsigned) item.size, item.decl.type.GetName().c_str(), item.decl.name.c_str());
+		}
+		fprintf(fp, "   total size %08X\n", GetTotalSize());
+	} else {
+		fprintf(fp, "   (empty)\n");
 	}
-	printf("   var  total %08X\n", GetTotalSize());
 }
 
 VarDeclListVisitor::VarDeclListVisitor(VarDeclList base) : list(base)
@@ -63,14 +67,14 @@ const std::string &MethodDeclItem::GetName() const
 {
 	return this->decl.name;
 }
-void MethodDeclList::Dump()
+void MethodDeclList::Dump(FILE *fp)
 {
 	for (auto &item: *this) {
-		printf("  method: %08X %-10s %s():\n", (unsigned) item.off, ASTType::GetTypeName(item.decl.rettype.type), item.decl.name.c_str());
-		printf("  >arg\n");
-		item.decl.arg.Dump();
-		printf("  >local\n");
-		item.localvar.Dump();
+		fprintf(fp, " method: %08X %s %s()\n", (unsigned) item.off, item.decl.rettype.GetName().c_str(), item.decl.name.c_str());
+		fprintf(fp, "  arg:\n");
+		item.decl.arg.Dump(fp);
+		fprintf(fp, "  local-var:\n");
+		item.localvar.Dump(fp);
 	}
 }
 
@@ -121,19 +125,18 @@ const std::string &ClassInfoItem::GetName() const
 {
 	return name;
 }
-void ClassInfoItem::Dump()
+void ClassInfoItem::Dump(FILE *fp)
 {
-	printf("class %s:\n", name.c_str());
-	printf(" member-var:\n");
-	var.Dump();
-	printf(" method:\n");
-	method.Dump();
+	fprintf(fp, "class %s:\n", name.c_str());
+	fprintf(fp, " class-var:\n");
+	var.Dump(fp);
+	method.Dump(fp);
 }
 
-void ClassInfoList::Dump()
+void ClassInfoList::Dump(FILE *fp)
 {
 	for (auto &item: *this) {
-		item.Dump();
+		item.Dump(fp);
 	}
 }
 void ClassInfoVisitor::Visit(ASTClassDeclaration *node, int level)
@@ -1066,6 +1069,13 @@ void CodeGen::Link()
 	MakeEXE();
 }
 
+void CodeGen::DumpVars(const char *outfile)
+{
+	FILE *fp;
+	if (outfile) fp = fopen(outfile, "w"); else fp = stdout;
+	clsinfo.Dump(fp);
+	if (outfile) fclose(fp);
+}
 void CodeGen::DumpSections(const char *outfile)
 {
 	FILE *fp;

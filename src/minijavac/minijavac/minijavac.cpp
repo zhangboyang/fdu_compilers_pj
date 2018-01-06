@@ -12,6 +12,8 @@ MiniJavaC *MiniJavaC::Instance()
 
 void MiniJavaC::LoadFile(const char *filename)
 {
+	assert(!src_loaded);
+
 	printf("[*] Loading %s ...\n", filename);
 
 	FILE *fp = fopen(filename, "r");

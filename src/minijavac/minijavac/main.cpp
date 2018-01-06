@@ -24,7 +24,7 @@ int main(int argc, char *argv[])
 	//MiniJavaC::Instance()->LoadFile("../../../tests/QuickSort.java");
 	MiniJavaC::Instance()->LoadFile("../../../tests/TreeVisitor.java");
 
-	MiniJavaC::Instance()->LoadFile("../../../tests/myDerivedClassTest.java");
+	//MiniJavaC::Instance()->LoadFile("../../../tests/myDerivedClassTest.java");
 	#else
 
 	if (argc >= 2) {
@@ -41,8 +41,11 @@ int main(int argc, char *argv[])
 			MiniJavaC::Instance()->DumpASTToTextFile("out.ast.txt", true);
 			MiniJavaC::Instance()->DumpASTToJSON("out.ast.json"); 
 			CodeGen::Instance()->GenerateCode();
+			CodeGen::Instance()->DumpVars("out.var.txt");
 			CodeGen::Instance()->DumpSections("out.asm.txt");
 		}
+	} else {
+		MiniJavaC::Instance()->ReportError("no source file.");
 	}
 
 	int err_cnt = MiniJavaC::Instance()->error_count;
