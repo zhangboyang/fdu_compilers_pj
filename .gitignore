@@ -298,3 +298,4 @@ test.*
 *.out
 *.diff
 *.output
+*.cd

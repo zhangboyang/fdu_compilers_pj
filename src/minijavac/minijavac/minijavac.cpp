@@ -1,6 +1,16 @@
 #include "common.h"
 #include "minijavac.tab.h"
 
+ErrFlagObj::ErrFlagObj()
+{
+	MiniJavaC::Instance()->errflag_stack.push_back(this);
+}
+ErrFlagObj::~ErrFlagObj()
+{
+	assert(MiniJavaC::Instance()->errflag_stack.back() == this);
+	MiniJavaC::Instance()->errflag_stack.pop_back();
+}
+
 MiniJavaC::MiniJavaC()
 {
 }
@@ -100,16 +110,22 @@ void MiniJavaC::DumpContent(const yyltype &loc, FILE *fp)
 	}
 }
 
-void MiniJavaC::ReportError(const std::string &msg)
+void MiniJavaC::ReportError(const std::string &msg, bool important)
 {
-	printf("ERROR : %s\n", msg.c_str());
-	printf("\n");
-	error_count++;
+	if (errflag_stack.empty() || !errflag_stack.back()->flag) {
+		printf("ERROR : %s\n", msg.c_str());
+		printf("\n");
+		error_count++;
+		if (important && !errflag_stack.empty()) errflag_stack.back()->flag = true;
+	}
 }
-void MiniJavaC::ReportError(const yyltype &loc, const std::string &msg)
+void MiniJavaC::ReportError(const yyltype &loc, const std::string &msg, bool important)
 {
-	DumpContent(loc);
-	ReportError(msg);
+	if (errflag_stack.empty() || !errflag_stack.back()->flag) {
+		DumpContent(loc);
+		ReportError(msg);
+		if (important && !errflag_stack.empty()) errflag_stack.back()->flag = true;
+	}
 }
 
 

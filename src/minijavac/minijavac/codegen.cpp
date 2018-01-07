@@ -83,6 +83,8 @@ MethodDeclListVisitor::MethodDeclListVisitor(MethodDeclList base, const std::str
 }
 void MethodDeclListVisitor::Visit(ASTMethodDeclaration *node, int level)
 {
+	ErrFlagObj ef;
+
 	MethodDeclItem new_item {
 		MethodDecl {
 			node->GetASTType()->GetTypeInfo(),
@@ -106,10 +108,10 @@ void MethodDeclListVisitor::Visit(ASTMethodDeclaration *node, int level)
 				new_item.off = it->off;
 				*it = new_item;
 			} else {
-				MiniJavaC::Instance()->ReportError(node->GetASTIdentifier()->loc, "different method prototype");
+				MiniJavaC::Instance()->ReportError(node->GetASTIdentifier()->loc, "different method prototype", true);
 			}
 		} else {
-			MiniJavaC::Instance()->ReportError(node->GetASTIdentifier()->loc, "duplicate method");
+			MiniJavaC::Instance()->ReportError(node->GetASTIdentifier()->loc, "duplicate method", true);
 		}
 	}
 
@@ -688,6 +690,8 @@ void CodeGen::Visit(ASTArrayLengthExpression *node, int level)
 
 void CodeGen::Visit(ASTFunctionCallExpression *node, int level)
 {
+	ErrFlagObj ef;
+
 	class MethodArgVisitor : public ASTNodeVisitor {
 	public:
 		std::vector<std::shared_ptr<ASTNode> > arglist;
@@ -720,13 +724,13 @@ void CodeGen::Visit(ASTFunctionCallExpression *node, int level)
 				vtbloff = mit->off;
 				rtype = mit->decl.rettype;
 			} else {
-				MiniJavaC::Instance()->ReportError(node->GetASTIdentifier()->loc, "no such method");
+				MiniJavaC::Instance()->ReportError(node->GetASTIdentifier()->loc, "no such method", true);
 			}
 		} else {
-			MiniJavaC::Instance()->ReportError(node->GetASTExpression()->loc, "no such class");
+			MiniJavaC::Instance()->ReportError(node->GetASTExpression()->loc, "no such class", true);
 		}
 	} else {
-		MiniJavaC::Instance()->ReportError(node->GetASTExpression()->loc, "not a class");
+		MiniJavaC::Instance()->ReportError(node->GetASTExpression()->loc, "not a class", true);
 	}
 
 	if (marglist && marglist->size() == v.arglist.size()) {

@@ -22,10 +22,19 @@ extern void yyerror(const char *s);
 
 class ASTGoal;
 
+class ErrFlagObj {
+public:
+	bool flag = false;
+	ErrFlagObj();
+	~ErrFlagObj();
+};
+
 class MiniJavaC {
+	friend class ErrFlagObj;
+
 	std::vector<std::string> lines;
 	unsigned ln, col;
-	
+	std::vector<ErrFlagObj *> errflag_stack;
 
 public:
 	std::shared_ptr<ASTGoal> goal;
@@ -36,8 +45,8 @@ private:
 	MiniJavaC();
 public:
 	int GetChar();
-	void ReportError(const yyltype &loc, const std::string &msg);
-	void ReportError(const std::string &msg);
+	void ReportError(const yyltype &loc, const std::string &msg, bool important = false);
+	void ReportError(const std::string &msg, bool important = false);
 	static MiniJavaC *Instance();
 
 	void LoadFile(const char *filename);

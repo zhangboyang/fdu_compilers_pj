@@ -150,6 +150,11 @@
       <Verbose Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">true</Verbose>
     </Bison>
   </ItemGroup>
+  <ItemGroup>
+    <None Include="ClassDiagram.cd" />
+    <None Include="ClassDiagram1.cd" />
+    <None Include="ClassDiagram2.cd" />
+  </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
     <Import Project="..\..\..\dependencies\win_flex_bison\custom_build_rules\win_flex_bison_custom_build.targets" />
